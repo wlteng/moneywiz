@@ -1,17 +1,62 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getTransactionById } from '../services/expenseService';
+import { Container, Row, Col } from 'react-bootstrap';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const SingleTransaction = () => {
+  const { transactionId } = useParams();
+  const [transaction, setTransaction] = useState(null);
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  useEffect(() => {
+    const fetchTransaction = async () => {
+      const data = await getTransactionById(transactionId);
+      setTransaction(data);
+    };
+    fetchTransaction();
+  }, [transactionId]);
+
+  if (!transaction) {
+    return <p>Loading...</p>;
+  }
+
+  return (
+    <Container className="mt-4">
+      <h2>Transaction Details</h2>
+      <Row>
+        <Col><strong>Date:</strong> {transaction.date}</Col>
+      </Row>
+      <Row>
+        <Col><strong>Category:</strong> {transaction.category}</Col>
+      </Row>
+      <Row>
+        <Col><strong>Amount:</strong> {transaction.amount}</Col>
+      </Row>
+      <Row>
+        <Col><strong>Payment Method:</strong> {transaction.paymentMethod}</Col>
+      </Row>
+      <Row>
+        <Col><strong>Description:</strong> {transaction.description}</Col>
+      </Row>
+      <Row className="mt-4">
+        <Col>
+          <img
+            src={transaction.receipt}
+            alt="Receipt"
+            className="img-fluid"
+            style={{ maxHeight: '150px' }}
+          />
+        </Col>
+        <Col>
+          <img
+            src={transaction.productImage}
+            alt="Product"
+            className="img-fluid"
+            style={{ maxHeight: '150px' }}
+          />
+        </Col>
+      </Row>
+    </Container>
+  );
+};
+
+export default SingleTransaction;

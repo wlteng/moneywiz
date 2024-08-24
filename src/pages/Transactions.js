@@ -1,17 +1,58 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getTransactions } from '../services/expenseService';
+import { Container, Table, Form } from 'react-bootstrap';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const Transactions = () => {
+  const [transactions, setTransactions] = useState([]);
+  const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const data = await getTransactions(filterMonth);
+      setTransactions(data);
+    };
+    fetchTransactions();
+  }, [filterMonth]);
+
+  return (
+    <Container className="mt-4">
+      <h2>Transactions</h2>
+      <Form.Select
+        className="mb-4"
+        value={filterMonth}
+        onChange={(e) => setFilterMonth(e.target.value)}
+      >
+        {[...Array(12)].map((_, i) => (
+          <option key={i + 1} value={i + 1}>
+            {new Date(0, i).toLocaleString('default', { month: 'long' })}
+          </option>
+        ))}
+      </Form.Select>
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((transaction) => (
+            <tr key={transaction.id}>
+              <td>{transaction.date}</td>
+              <td>{transaction.category}</td>
+              <td>{transaction.amount}</td>
+              <td>
+                <Link to={`/transaction/${transaction.id}`}>View</Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </Container>
+  );
+};
+
+export default Transactions;

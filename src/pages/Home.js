@@ -1,17 +1,23 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import { Link } from 'react-router-dom';
+import { categoryList } from '../data/General';
+import { Container, Row, Col } from 'react-bootstrap';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const Home = () => {
+  return (
+    <Container className="mt-4">
+      <h1 className="text-center">Choose a Category</h1>
+      <Row className="mt-4">
+        {categoryList.map(category => (
+          <Col xs={6} className="mb-3" key={category.id}>
+            <Link to={`/keyboard/${category.id}`} className="btn btn-primary w-100">
+              {category.name}
+            </Link>
+          </Col>
+        ))}
+      </Row>
+    </Container>
+  );
+};
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+export default Home;
