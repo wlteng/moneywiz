@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import { Modal, Button, DropdownButton, Dropdown } from 'react-bootstrap';
+import { Modal, Button, DropdownButton, Dropdown, Badge } from 'react-bootstrap';
 import { FaInfoCircle } from 'react-icons/fa';
+import { categoryList } from '../data/General';
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -12,6 +13,7 @@ const Transactions = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [filterMonth, setFilterMonth] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -57,6 +59,10 @@ const Transactions = () => {
     setFilterCurrency(currency);
   };
 
+  const handleCategoryChange = (category) => {
+    setFilterCategory(category);
+  };
+
   const uniqueMonths = [
     ...new Set(
       transactions.map((transaction) =>
@@ -73,7 +79,8 @@ const Transactions = () => {
       ? transactionDate.toLocaleString('default', { month: 'long', year: 'numeric' }) === filterMonth
       : true;
     const currencyMatches = filterCurrency ? transaction.fromCurrency === filterCurrency : true;
-    return monthMatches && currencyMatches;
+    const categoryMatches = filterCategory ? transaction.categoryId === filterCategory : true;
+    return monthMatches && currencyMatches && categoryMatches;
   });
 
   const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
@@ -93,6 +100,20 @@ const Transactions = () => {
   const monthHeaderStyle = {
     backgroundColor: '#2c3e50',
     color: 'white',
+  };
+
+  const getPaymentMethodBadgeColor = (type) => {
+    switch (type) {
+      case 'E-Wallet':
+        return 'primary';
+      case 'Debit Card':
+        return 'success';
+      case 'Credit Card':
+        return 'danger';
+      case 'Cash':
+      default:
+        return 'secondary';
+    }
   };
 
   console.log('Rendering Transactions component');
@@ -121,11 +142,25 @@ const Transactions = () => {
           variant="outline-secondary"
           title={filterCurrency || 'Input Currency'}
           id="input-group-dropdown-2"
+          className="me-2"
         >
           <Dropdown.Item onClick={() => handleCurrencyChange('')}>All currencies</Dropdown.Item>
           {uniqueCurrencies.map((currency, index) => (
             <Dropdown.Item key={index} onClick={() => handleCurrencyChange(currency)}>
               {currency}
+            </Dropdown.Item>
+          ))}
+        </DropdownButton>
+
+        <DropdownButton
+          variant="outline-secondary"
+          title={filterCategory ? categoryList.find(cat => cat.id === filterCategory)?.name : 'All categories'}
+          id="input-group-dropdown-3"
+        >
+          <Dropdown.Item onClick={() => handleCategoryChange('')}>All categories</Dropdown.Item>
+          {categoryList.map((category, index) => (
+            <Dropdown.Item key={index} onClick={() => handleCategoryChange(category.id)}>
+              {category.name}
             </Dropdown.Item>
           ))}
         </DropdownButton>
@@ -140,6 +175,7 @@ const Transactions = () => {
               <th>Input</th>
               <th>{localStorage.getItem('mainCurrency')}</th>
               <th>Method</th>
+              <th>Category</th>
               <th>Desc</th>
             </tr>
           </thead>
@@ -147,8 +183,9 @@ const Transactions = () => {
             {Object.keys(groupedTransactions).map((monthYear, idx) => (
               <React.Fragment key={idx}>
                 <tr style={monthHeaderStyle}>
-                  <td colSpan="5" className="fw-bold">{monthYear}</td>
-                  <td className="text-end">{getMonthlyTotal(groupedTransactions[monthYear])} {localStorage.getItem('mainCurrency')}</td>
+                  <td colSpan="7" className="fw-bold">
+                    {monthYear} : Total {localStorage.getItem('mainCurrency')} {getMonthlyTotal(groupedTransactions[monthYear])}
+                  </td>
                 </tr>
                 {groupedTransactions[monthYear].map((transaction) => (
                   <tr key={transaction.id}>
@@ -157,13 +194,15 @@ const Transactions = () => {
                     <td>{parseFloat(transaction.amount).toFixed(2)} {transaction.fromCurrency}</td>
                     <td>{parseFloat(transaction.convertedAmount).toFixed(2)}</td>
                     <td>
-                      <span 
-                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      <Badge
+                        bg={getPaymentMethodBadgeColor(transaction.paymentMethod.type)}
+                        style={{ cursor: 'pointer' }}
                         onClick={() => handleShowPaymentDetails(transaction.paymentMethod)}
                       >
                         {transaction.paymentMethod.type === 'Cash' ? 'Cash' : `Card: ${transaction.paymentMethod.last4}`}
-                      </span>
+                      </Badge>
                     </td>
+                    <td>{transaction.categoryName}</td>
                     <td>
                       <FaInfoCircle
                         style={{ cursor: 'pointer' }}
