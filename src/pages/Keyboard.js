@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { paymentTypes, getConvertedAmount, currencyList, creditCards, debitCards, wallets } from '../data/General';
+import { paymentTypes, getConvertedAmount, currencyList, creditCards, debitCards, wallets, categoryList } from '../data/General';
 import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge } from 'react-bootstrap';
 import { db } from '../services/firebase';
 import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -22,6 +22,7 @@ const Keyboard = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [user, setUser] = useState(null);
   const [recentPaymentMethods, setRecentPaymentMethods] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(categoryList.find(cat => cat.id === categoryId) || categoryList[0]);
   const amountInputRef = useRef(null);
 
   useEffect(() => {
@@ -123,7 +124,8 @@ const Keyboard = () => {
         date: transactionDate.toISOString(),
         fromCurrency,
         toCurrency,
-        categoryId,
+        categoryId: selectedCategory.id,
+      categoryName: selectedCategory.name,
       };
 
       console.log('Creating transaction object:', transaction);
@@ -153,7 +155,7 @@ const Keyboard = () => {
     if (method.type === 'Cash') {
       return `cash-${method.currency || fromCurrency}`;
     } else if (method.type === 'Credit Card' || method.type === 'Debit Card') {
-      return `${method.type.toLowerCase().replace(' ', '')}-${method.last4}`;
+      return `${method.bank}-${method.last4}`;
     } else {
       return `${method.type.toLowerCase().replace(' ', '')}-${method.bank || method.currency || fromCurrency}`;
     }
@@ -174,17 +176,17 @@ const Keyboard = () => {
   };
 
   return (
-    <Container className="mt-4" style={{ paddingTop: '20px', maxWidth: '100%' }}>
-      <div className="mb-4 overflow-auto" style={{ whiteSpace: 'nowrap' }}>
+    <Container className="mt-4" style={{ maxWidth: '100%' }}>
+      <div className="overflow-auto" style={{ whiteSpace: 'nowrap', height: '60px' }}>
         {recentPaymentMethods.map((method, index) => (
-          <Badge 
+          <Button 
             key={index} 
-            bg={getPaymentMethodBadgeColor(method.type)}
-            style={{ margin: '0 5px', cursor: 'pointer' }}
+            variant={getPaymentMethodBadgeColor(method.type)}
+            style={{ margin: '0 5px', cursor: 'pointer', color: '#fff' }}
             onClick={() => setPaymentMethod(method)}
           >
             {getPaymentMethodTag(method)}
-          </Badge>
+          </Button>
         ))}
       </div>
 
@@ -196,14 +198,14 @@ const Keyboard = () => {
               value={amount}
               onChange={handleAmountChange}
               ref={amountInputRef}
-              style={{zIndex: 1, height: 'auto' }}
+              style={{ zIndex: 1, height: 'auto' }}
             />
             <DropdownButton
               as={InputGroup.Append}
-              variant="outline-secondary"
+              variant={`bg-${getPaymentMethodBadgeColor(paymentMethod.type)}`}
               title={fromCurrency}
               id="input-group-dropdown-2"
-              style={{ height: 'auto' }}
+              style={{ height: 'auto', border: 'none', backgroundColor: getPaymentMethodBadgeColor(paymentMethod.type), color: 'white' }}
             >
               {currencyList.map((currency) => (
                 <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
@@ -236,46 +238,55 @@ const Keyboard = () => {
           </Col>
         </Row>
 
-        <div className="mb-4">
-          <Row>
-            {paymentTypes.map((type, index) => (
-              <Col key={index} xs={6} className="mb-2">
-                <DropdownButton
-                  variant="outline-secondary"
-                  title={type}
-                  id={`payment-dropdown-${index}`}
-                  className="w-100"
-                >
-                  {type === 'Cash' && (
-                    <Dropdown.Item onClick={() => handlePaymentMethodChange({ type: 'Cash' })}>
-                      Cash
-                    </Dropdown.Item>
-                  )}
-                  {type === 'Credit Card' && creditCards.map((card, cardIndex) => (
-                    <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Credit Card'})}>
-                                          {card.bank} - {card.last4}
-                    </Dropdown.Item>
-                  ))}
-                  {type === 'Debit Card' && debitCards.map((card, cardIndex) => (
-                    <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Debit Card'})}>
-                      {card.bank} - {card.last4}
-                    </Dropdown.Item>
-                  ))}
-                  {type === 'E-Wallet' && wallets.map((wallet, walletIndex) => (
-                    <Dropdown.Item key={walletIndex} onClick={() => handlePaymentMethodChange({...wallet, type: 'E-Wallet'})}>
-                      {wallet.name} ({wallet.country})
-                    </Dropdown.Item>
-                  ))}
-                </DropdownButton>
-              </Col>
-            ))}
-          </Row>
-        </div>
+        
 
         <div className="mb-4">
-          <strong>Selected Payment Method: </strong>
-          <Badge bg={getPaymentMethodBadgeColor(paymentMethod.type)}>{getPaymentMethodTag(paymentMethod)}</Badge>
-        </div>
+        <strong>Selected Category: </strong>
+        <Badge bg="info">{selectedCategory.name}</Badge>
+      </div>
+
+      <div className="mb-4">
+        <Row>
+          {paymentTypes.map((type, index) => (
+            <Col key={index} xs={6} className="mb-2">
+              <DropdownButton
+                variant={getPaymentMethodBadgeColor(type)}
+                title={type}
+                id={`payment-dropdown-${index}`}
+                className="w-100"
+              >
+                {type === 'Cash' && (
+                  <Dropdown.Item onClick={() => handlePaymentMethodChange({ type: 'Cash' })}>
+                    Cash
+                  </Dropdown.Item>
+                )}
+                {type === 'Credit Card' && creditCards.map((card, cardIndex) => (
+                  <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Credit Card'})}>
+                    {card.bank} - {card.last4}
+                  </Dropdown.Item>
+                ))}
+                {type === 'Debit Card' && debitCards.map((card, cardIndex) => (
+                  <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Debit Card'})}>
+                    {card.bank} - {card.last4}
+                  </Dropdown.Item>
+                ))}
+                {type === 'E-Wallet' && wallets.map((wallet, walletIndex) => (
+                  <Dropdown.Item key={walletIndex} onClick={() => handlePaymentMethodChange({...wallet, type: 'E-Wallet'})}>
+                    {wallet.name} ({wallet.country})
+                  </Dropdown.Item>
+                ))}
+              </DropdownButton>
+            </Col>
+          ))}
+        </Row>
+      </div>
+
+      <div className="mb-4">
+        <strong>Selected Payment Method: </strong>
+        <Badge bg={getPaymentMethodBadgeColor(paymentMethod.type)}>
+          {paymentMethod.type === 'Cash' ? `${paymentMethod.type}-${fromCurrency}` : `${paymentMethod.type}: ${paymentMethod.last4}`}
+        </Badge>
+      </div>
 
         <div className="mb-4">
           <Form.Group>
