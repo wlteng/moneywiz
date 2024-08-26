@@ -1,41 +1,88 @@
-import axios from 'axios';
+// General.js
 
-const API_KEY = 'b511944e5000abfcf886497904ff9016'; // Replace with your actual API key
-const API_URL = `https://api.exchangeratesapi.io/latest?access_key=${API_KEY}`;
+// Define manual conversion rates from MYR to other currencies
+const conversionRates = {
+  USD: 0.22, // 1 MYR = 0.22 USD
+  EUR: 0.20, // 1 MYR = 0.20 EUR
+  GBP: 0.18, // 1 MYR = 0.18 GBP
+  SGD: 0.31, // 1 MYR = 0.31 SGD
+  AUD: 0.34, // 1 MYR = 0.34 AUD
+  // Add more currencies as needed
+};
 
-export const getConvertedAmount = async (amount, fromCurrency, toCurrency) => {
+export const getConvertedAmount = (amount, fromCurrency, toCurrency) => {
   try {
-    const response = await axios.get(`${API_URL}&base=${fromCurrency}&symbols=${toCurrency}`);
-    const rate = response.data.rates[toCurrency];
-    return amount * rate;
+    console.log(`Converting ${amount} ${fromCurrency} to ${toCurrency}`);
+
+    if (fromCurrency === 'MYR') {
+      const rate = conversionRates[toCurrency];
+      if (!rate) throw new Error(`Conversion rate for ${toCurrency} not found.`);
+      const convertedAmount = amount * rate;
+      console.log(`Conversion Rate: ${rate}`);
+      console.log(`Converted Amount: ${convertedAmount}`);
+      return convertedAmount;
+    } else if (toCurrency === 'MYR') {
+      const rate = conversionRates[fromCurrency];
+      if (!rate) throw new Error(`Conversion rate for ${fromCurrency} not found.`);
+      const convertedAmount = amount / rate;
+      console.log(`Conversion Rate: ${rate}`);
+      console.log(`Converted Amount: ${convertedAmount}`);
+      return convertedAmount;
+    } else {
+      throw new Error('Conversion must involve MYR.');
+    }
   } catch (error) {
-    console.error('Currency conversion failed:', error);
-    return amount; // Fallback to original amount if conversion fails
+    console.error('Error in manual conversion:', error);
+    return amount; // Fallback to the original amount if conversion fails
   }
 };
 
-export const categoryList = [
-  { id: 1, name: 'Food' },
-  { id: 2, name: 'Transport' },
-  { id: 3, name: 'Shopping' },
-  // Add more categories here
+// Define a list of currencies for dropdowns or other uses
+export const currencyList = [
+  { code: 'MYR', name: 'Malaysian Ringgit' },
+  { code: 'USD', name: 'US Dollar' },
+  { code: 'EUR', name: 'Euro' },
+  { code: 'GBP', name: 'British Pound' },
+  { code: 'SGD', name: 'Singapore Dollar' },
+  { code: 'AUD', name: 'Australian Dollar' },
 ];
 
-export const paymentTypes = ['Cash', 'Wallet', 'Credit Card'];
+// Define a list of categories for your application
+export const categoryList = [
+  { id: 'food', name: 'Food' },
+  { id: 'transportation', name: 'Transportation' },
+  { id: 'accommodation', name: 'Accommodation' },
+  { id: 'entertainment', name: 'Entertainment' },
+  { id: 'shopping', name: 'Shopping' },
+  { id: 'utilities', name: 'Utilities' },
+  // Add more categories as needed
+];
 
+// Simplified payment types
+export const paymentTypes = [
+  'Cash',
+  'Credit Card',
+  'Debit Card',
+  'E-Wallet',
+];
+
+// Define a list of wallets
 export const wallets = [
   { country: 'Malaysia', name: 'TouchnGo' },
+  { country: 'Singapore', name: 'PayLah' },
   // Add more wallets here
 ];
 
+// Define a list of credit cards
 export const creditCards = [
   { bank: 'Public Bank', type: 'Visa', last4: '3412', name: 'Platinum' },
+  { bank: 'HSBC', type: 'MasterCard', last4: '1234', name: 'Gold' },
   // Add more credit cards here
 ];
 
-export const currencyList = [
-  { code: 'USD', name: 'US Dollar' },
-  { code: 'MYR', name: 'Malaysian Ringgit' },
-  // Add more currencies here
+// Define a list of debit cards
+export const debitCards = [
+  { bank: 'Public Bank', type: 'Visa', last4: '5678' },
+  { bank: 'Maybank', type: 'MasterCard', last4: '9101' },
+  // Add more debit cards here
 ];
-

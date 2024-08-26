@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth } from '../services/firebase';
 import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { currencyList } from '../data/General';
@@ -7,11 +7,53 @@ import { Container, Form, Button } from 'react-bootstrap';
 const Profile = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mainCurrency, setMainCurrency] = useState(currencyList[0].code);
+  const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'USD');
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
 
-  // Google login
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+        const storedCurrency = localStorage.getItem('mainCurrency');
+        if (storedCurrency) {
+          setMainCurrency(storedCurrency);
+        }
+      } else {
+        setUser(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleCurrencyChange = (event) => {
+    const selectedCurrency = event.target.value;
+    setMainCurrency(selectedCurrency);
+    localStorage.setItem('mainCurrency', selectedCurrency);
+  };
+
+  const handleEmailLogin = async () => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      setUser(result.user);
+      setError('');
+    } catch (error) {
+      console.error('Email login failed:', error.message);
+      setError(`Email login failed: ${error.message}`);
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      setUser(result.user);
+      setError('');
+    } catch (error) {
+      console.error('Registration failed:', error.message);
+      setError(`Registration failed: ${error.message}`);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -24,31 +66,6 @@ const Profile = () => {
     }
   };
 
-  // Email login
-  const handleEmailLogin = async () => {
-    try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      setUser(result.user);
-      setError('');
-    } catch (error) {
-      console.error('Email login failed:', error.message);
-      setError(`Email login failed: ${error.message}`);
-    }
-  };
-
-  // Register new user
-  const handleRegister = async () => {
-    try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      setUser(result.user);
-      setError('');
-    } catch (error) {
-      console.error('Registration failed:', error.message);
-      setError(`Registration failed: ${error.message}`);
-    }
-  };
-
-  // Logout user
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -58,12 +75,6 @@ const Profile = () => {
       console.error('Logout failed:', error.message);
       setError(`Logout failed: ${error.message}`);
     }
-  };
-
-  // Handle currency change
-  const handleCurrencyChange = (event) => {
-    setMainCurrency(event.target.value);
-    // Save the selected currency to the user profile in Firebase or local storage
   };
 
   return (

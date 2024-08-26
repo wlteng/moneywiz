@@ -28,21 +28,16 @@ export const getMonthlySummary = async () => {
   };
 };
 
-// Get all transactions for a specific month
-export const getTransactions = async (month) => {
-  const expensesRef = collection(db, 'expenses');
-  const q = query(expensesRef, where('month', '==', month));
-  const querySnapshot = await getDocs(q);
-
-  let transactions = [];
-
+// Function to get all transactions from Firestore
+export const getTransactions = async () => {
+  const transactions = [];
+  const querySnapshot = await getDocs(collection(db, 'expenses'));
+  
   querySnapshot.forEach((doc) => {
-    transactions.push({
-      id: doc.id,
-      ...doc.data(),
-    });
+    transactions.push({ id: doc.id, ...doc.data() });
   });
 
+  console.log('Fetched transactions:', transactions); // Log the fetched transactions for debugging
   return transactions;
 };
 

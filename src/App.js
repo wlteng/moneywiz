@@ -1,27 +1,42 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Header from './components/Header';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
-import Keyboard from './pages/Keyboard';
+import Transactions from './pages/Transactions';
 import Report from './pages/Report';
-import SingleTransaction from './pages/SingleTransaction';
 import Profile from './pages/Profile';
+import Keyboard from './pages/Keyboard'; // Make sure you import the Keyboard component
+import Header from './components/Header';
+import { auth } from './services/firebase';
 
-function App() {
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); 
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false); 
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>; 
+  }
+
   return (
     <Router>
-      <div>
-        <Header />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/keyboard/:categoryId" element={<Keyboard />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/transaction/:transactionId" element={<SingleTransaction />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
-      </div>
+      {user && <Header />} 
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/keyboard/:categoryId" element={user ? <Keyboard /> : <Navigate to="/profile" />} /> {/* Ensure the Keyboard page is routed correctly */}
+        <Route path="/transactions" element={user ? <Transactions /> : <Navigate to="/profile" />} />
+        <Route path="/report" element={user ? <Report /> : <Navigate to="/profile" />} />
+        <Route path="/profile" element={<Profile />} />
+      </Routes>
     </Router>
   );
-}
+};
 
 export default App;
