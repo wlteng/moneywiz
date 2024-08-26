@@ -1,24 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { paymentTypes, getConvertedAmount, currencyList } from '../data/General';
-import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col } from 'react-bootstrap';
+import { paymentTypes, getConvertedAmount, currencyList, creditCards, debitCards, wallets } from '../data/General';
+import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge } from 'react-bootstrap';
 import { db } from '../services/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { auth } from '../services/firebase';
-
-const paymentImages = {
-  Cash: 'path/to/cash.png',
-  'Credit Card': 'path/to/credit-card.png',
-  'Debit Card': 'path/to/debit-card.png',
-  'E-Wallet': 'path/to/wallet.png',
-};
 
 const Keyboard = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [convertedAmount, setConvertedAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState(paymentTypes[0] || '');
+  const [paymentMethod, setPaymentMethod] = useState({ type: 'Cash', last4: 'N/A', bank: 'N/A' });
   const [description, setDescription] = useState('');
   const [receipt, setReceipt] = useState(null);
   const [productImage, setProductImage] = useState(null);
@@ -28,6 +21,7 @@ const Keyboard = () => {
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const [showSuccess, setShowSuccess] = useState(false);
   const [user, setUser] = useState(null);
+  const [recentPaymentMethods, setRecentPaymentMethods] = useState([]);
   const amountInputRef = useRef(null);
 
   useEffect(() => {
@@ -61,6 +55,26 @@ const Keyboard = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const fetchRecentPaymentMethods = async () => {
+      if (user) {
+        const q = query(collection(db, 'expenses'), orderBy('date', 'desc'), limit(10));
+        const querySnapshot = await getDocs(q);
+        const methods = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            type: data.paymentMethod.type,
+            last4: data.paymentMethod.last4,
+            bank: data.paymentMethod.bank,
+            currency: data.fromCurrency
+          };
+        });
+        setRecentPaymentMethods(methods);
+      }
+    };
+    fetchRecentPaymentMethods();
+  }, [user]);
+
   const handleAmountChange = (e) => {
     const value = e.target.value;
     if (!isNaN(value) && value.match(/^\d*\.?\d{0,2}$/)) {
@@ -73,16 +87,8 @@ const Keyboard = () => {
     localStorage.setItem('lastChosenCurrency', currency);
   };
 
-  const handlePaymentMethodChange = (selectedMethod) => {
-    setPaymentMethod(selectedMethod);
-  };
-
-  const handleDateChange = (e) => {
-    setDate(e.target.value);
-  };
-
-  const handleTimeChange = (e) => {
-    setTime(e.target.value);
+  const handlePaymentMethodChange = (method) => {
+    setPaymentMethod(method);
   };
 
   const handleSubmit = async (e) => {
@@ -96,7 +102,7 @@ const Keyboard = () => {
         return;
       }
 
-      if (!amount || !paymentMethod || !date || !time) {
+      if (!amount || !date || !time) {
         console.log('Missing required fields');
         alert("Please fill in all required fields");
         return;
@@ -106,7 +112,11 @@ const Keyboard = () => {
       const transaction = {
         amount: parseFloat(amount).toFixed(2),
         convertedAmount,
-        paymentMethod,
+        paymentMethod: {
+          type: paymentMethod.type,
+          last4: paymentMethod.last4 || 'N/A',
+          bank: paymentMethod.bank || 'N/A'
+        },
         description,
         receipt,
         productImage,
@@ -135,8 +145,49 @@ const Keyboard = () => {
     }
   };
 
+  const getPaymentMethodTag = (method) => {
+    if (!method || !method.type) {
+      return ''; // or any default value or error handling you prefer
+    }
+
+    if (method.type === 'Cash') {
+      return `cash-${method.currency || fromCurrency}`;
+    } else if (method.type === 'Credit Card' || method.type === 'Debit Card') {
+      return `${method.type.toLowerCase().replace(' ', '')}-${method.last4}`;
+    } else {
+      return `${method.type.toLowerCase().replace(' ', '')}-${method.bank || method.currency || fromCurrency}`;
+    }
+  };
+
+  const getPaymentMethodBadgeColor = (type) => {
+    switch (type) {
+      case 'E-Wallet':
+        return 'primary';
+      case 'Debit Card':
+        return 'success';
+      case 'Credit Card':
+        return 'danger';
+      case 'Cash':
+      default:
+        return 'secondary';
+    }
+  };
+
   return (
     <Container className="mt-4" style={{ paddingTop: '20px', maxWidth: '100%' }}>
+      <div className="mb-4 overflow-auto" style={{ whiteSpace: 'nowrap' }}>
+        {recentPaymentMethods.map((method, index) => (
+          <Badge 
+            key={index} 
+            bg={getPaymentMethodBadgeColor(method.type)}
+            style={{ margin: '0 5px', cursor: 'pointer' }}
+            onClick={() => setPaymentMethod(method)}
+          >
+            {getPaymentMethodTag(method)}
+          </Badge>
+        ))}
+      </div>
+
       <Form onSubmit={handleSubmit}>
         <div>
           <InputGroup>
@@ -145,7 +196,7 @@ const Keyboard = () => {
               value={amount}
               onChange={handleAmountChange}
               ref={amountInputRef}
-              style={{ zIndex: 1, height: 'auto' }}
+              style={{zIndex: 1, height: 'auto' }}
             />
             <DropdownButton
               as={InputGroup.Append}
@@ -167,19 +218,19 @@ const Keyboard = () => {
         </div>
 
         <Row className="mb-4">
-          <Col xs={6} className="pr-1">
+          <Col xs={6} className="pe-1">
             <Form.Control 
               type="date" 
               value={date} 
-              onChange={handleDateChange}
+              onChange={(e) => setDate(e.target.value)}
               style={{ height: '38px' }}
             />
           </Col>
-          <Col xs={6} className="pl-1">
+          <Col xs={6} className="ps-1">
             <Form.Control 
               type="time" 
               value={time} 
-              onChange={handleTimeChange}
+              onChange={(e) => setTime(e.target.value)}
               style={{ height: '38px' }}
             />
           </Col>
@@ -187,35 +238,44 @@ const Keyboard = () => {
 
         <div className="mb-4">
           <Row>
-            {paymentTypes.map((method, index) => (
-              <Col key={index} xs={3} className="text-center" onClick={() => handlePaymentMethodChange(method)}>
-                <img
-                  src={paymentImages[method]}
-                  alt={method}
-                  style={{ width: '60px', height: '60px', borderRadius: '50%', cursor: 'pointer' }}
-                />
-                <h6 className="mt-2">{method}</h6>
+            {paymentTypes.map((type, index) => (
+              <Col key={index} xs={6} className="mb-2">
+                <DropdownButton
+                  variant="outline-secondary"
+                  title={type}
+                  id={`payment-dropdown-${index}`}
+                  className="w-100"
+                >
+                  {type === 'Cash' && (
+                    <Dropdown.Item onClick={() => handlePaymentMethodChange({ type: 'Cash' })}>
+                      Cash
+                    </Dropdown.Item>
+                  )}
+                  {type === 'Credit Card' && creditCards.map((card, cardIndex) => (
+                    <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Credit Card'})}>
+                                          {card.bank} - {card.last4}
+                    </Dropdown.Item>
+                  ))}
+                  {type === 'Debit Card' && debitCards.map((card, cardIndex) => (
+                    <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Debit Card'})}>
+                      {card.bank} - {card.last4}
+                    </Dropdown.Item>
+                  ))}
+                  {type === 'E-Wallet' && wallets.map((wallet, walletIndex) => (
+                    <Dropdown.Item key={walletIndex} onClick={() => handlePaymentMethodChange({...wallet, type: 'E-Wallet'})}>
+                      {wallet.name} ({wallet.country})
+                    </Dropdown.Item>
+                  ))}
+                </DropdownButton>
               </Col>
             ))}
           </Row>
         </div>
 
-        {showSuccess && (
-          <div style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 1050,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            color: '#fff',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            textAlign: 'center',
-          }}>
-            Transaction saved successfully!
-          </div>
-        )}
+        <div className="mb-4">
+          <strong>Selected Payment Method: </strong>
+          <Badge bg={getPaymentMethodBadgeColor(paymentMethod.type)}>{getPaymentMethodTag(paymentMethod)}</Badge>
+        </div>
 
         <div className="mb-4">
           <Form.Group>
@@ -239,8 +299,26 @@ const Keyboard = () => {
             <Form.Control type="file" onChange={(e) => setProductImage(e.target.files[0])} />
           </Form.Group>
         </div>
+        
         <Button variant="primary" type="submit">Submit</Button>
       </Form>
+
+      {showSuccess && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1050,
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          color: '#fff',
+          padding: '10px 20px',
+          borderRadius: '5px',
+          textAlign: 'center',
+        }}>
+          Transaction saved successfully!
+        </div>
+      )}
     </Container>
   );
 };
