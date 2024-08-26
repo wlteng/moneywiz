@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { paymentTypes, getConvertedAmount, currencyList, creditCards, debitCards, wallets, categoryList } from '../data/General';
-import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge } from 'react-bootstrap';
 import { db } from '../services/firebase';
 import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { auth } from '../services/firebase';
+import KeyboardR from './KeyboardR';
 
 const Keyboard = () => {
   const { categoryId } = useParams();
@@ -70,11 +70,23 @@ const Keyboard = () => {
             currency: data.fromCurrency
           };
         });
-        setRecentPaymentMethods(methods);
+        const uniqueMethods = Array.from(new Set(methods.map(JSON.stringify))).map(JSON.parse);
+        setRecentPaymentMethods(uniqueMethods);
       }
     };
     fetchRecentPaymentMethods();
   }, [user]);
+
+  useEffect(() => {
+    // Update date and time every second
+    const timer = setInterval(() => {
+      const now = new Date();
+      setDate(now.toISOString().split('T')[0]);
+      setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
@@ -125,7 +137,7 @@ const Keyboard = () => {
         fromCurrency,
         toCurrency,
         categoryId: selectedCategory.id,
-      categoryName: selectedCategory.name,
+        categoryName: selectedCategory.name,
       };
 
       console.log('Creating transaction object:', transaction);
@@ -147,190 +159,35 @@ const Keyboard = () => {
     }
   };
 
-  const getPaymentMethodTag = (method) => {
-    if (!method || !method.type) {
-      return ''; // or any default value or error handling you prefer
-    }
-
-    if (method.type === 'Cash') {
-      return `cash-${method.currency || fromCurrency}`;
-    } else if (method.type === 'Credit Card' || method.type === 'Debit Card') {
-      return `${method.bank}-${method.last4}`;
-    } else {
-      return `${method.type.toLowerCase().replace(' ', '')}-${method.bank || method.currency || fromCurrency}`;
-    }
-  };
-
-  const getPaymentMethodBadgeColor = (type) => {
-    switch (type) {
-      case 'E-Wallet':
-        return 'primary';
-      case 'Debit Card':
-        return 'success';
-      case 'Credit Card':
-        return 'danger';
-      case 'Cash':
-      default:
-        return 'secondary';
-    }
-  };
-
   return (
-    <Container className="mt-4" style={{ maxWidth: '100%' }}>
-      <div className="overflow-auto" style={{ whiteSpace: 'nowrap', height: '60px' }}>
-        {recentPaymentMethods.map((method, index) => (
-          <Button 
-            key={index} 
-            variant={getPaymentMethodBadgeColor(method.type)}
-            style={{ margin: '0 5px', cursor: 'pointer', color: '#fff' }}
-            onClick={() => setPaymentMethod(method)}
-          >
-            {getPaymentMethodTag(method)}
-          </Button>
-        ))}
-      </div>
-
-      <Form onSubmit={handleSubmit}>
-        <div>
-          <InputGroup>
-            <Form.Control
-              type="text"
-              value={amount}
-              onChange={handleAmountChange}
-              ref={amountInputRef}
-              style={{ zIndex: 1, height: 'auto' }}
-            />
-            <DropdownButton
-              as={InputGroup.Append}
-              variant={`bg-${getPaymentMethodBadgeColor(paymentMethod.type)}`}
-              title={fromCurrency}
-              id="input-group-dropdown-2"
-              style={{ height: 'auto', border: 'none', backgroundColor: getPaymentMethodBadgeColor(paymentMethod.type), color: 'white' }}
-            >
-              {currencyList.map((currency) => (
-                <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
-                  {currency.name}
-                </Dropdown.Item>
-              ))}
-            </DropdownButton>
-          </InputGroup>
-        </div>
-        <div className="mb-4">
-          <small>Converted: {convertedAmount || '0.00'} {toCurrency}</small>
-        </div>
-
-        <Row className="mb-4">
-          <Col xs={6} className="pe-1">
-            <Form.Control 
-              type="date" 
-              value={date} 
-              onChange={(e) => setDate(e.target.value)}
-              style={{ height: '38px' }}
-            />
-          </Col>
-          <Col xs={6} className="ps-1">
-            <Form.Control 
-              type="time" 
-              value={time} 
-              onChange={(e) => setTime(e.target.value)}
-              style={{ height: '38px' }}
-            />
-          </Col>
-        </Row>
-
-        
-
-        <div className="mb-4">
-        <strong>Selected Category: </strong>
-        <Badge bg="info">{selectedCategory.name}</Badge>
-      </div>
-
-      <div className="mb-4">
-        <Row>
-          {paymentTypes.map((type, index) => (
-            <Col key={index} xs={6} className="mb-2">
-              <DropdownButton
-                variant={getPaymentMethodBadgeColor(type)}
-                title={type}
-                id={`payment-dropdown-${index}`}
-                className="w-100"
-              >
-                {type === 'Cash' && (
-                  <Dropdown.Item onClick={() => handlePaymentMethodChange({ type: 'Cash' })}>
-                    Cash
-                  </Dropdown.Item>
-                )}
-                {type === 'Credit Card' && creditCards.map((card, cardIndex) => (
-                  <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Credit Card'})}>
-                    {card.bank} - {card.last4}
-                  </Dropdown.Item>
-                ))}
-                {type === 'Debit Card' && debitCards.map((card, cardIndex) => (
-                  <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Debit Card'})}>
-                    {card.bank} - {card.last4}
-                  </Dropdown.Item>
-                ))}
-                {type === 'E-Wallet' && wallets.map((wallet, walletIndex) => (
-                  <Dropdown.Item key={walletIndex} onClick={() => handlePaymentMethodChange({...wallet, type: 'E-Wallet'})}>
-                    {wallet.name} ({wallet.country})
-                  </Dropdown.Item>
-                ))}
-              </DropdownButton>
-            </Col>
-          ))}
-        </Row>
-      </div>
-
-      <div className="mb-4">
-        <strong>Selected Payment Method: </strong>
-        <Badge bg={getPaymentMethodBadgeColor(paymentMethod.type)}>
-          {paymentMethod.type === 'Cash' ? `${paymentMethod.type}-${fromCurrency}` : `${paymentMethod.type}: ${paymentMethod.last4}`}
-        </Badge>
-      </div>
-
-        <div className="mb-4">
-          <Form.Group>
-            <Form.Label>Description</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </Form.Group>
-        </div>
-
-        <div className="mb-4">
-          <Form.Group>
-            <Form.Label>Receipt</Form.Label>
-            <Form.Control type="file" onChange={(e) => setReceipt(e.target.files[0])} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Product Image</Form.Label>
-            <Form.Control type="file" onChange={(e) => setProductImage(e.target.files[0])} />
-          </Form.Group>
-        </div>
-        
-        <Button variant="primary" type="submit">Submit</Button>
-      </Form>
-
-      {showSuccess && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 1050,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          color: '#fff',
-          padding: '10px 20px',
-          borderRadius: '5px',
-          textAlign: 'center',
-        }}>
-          Transaction saved successfully!
-        </div>
-      )}
-    </Container>
+    <KeyboardR
+      amount={amount}
+      convertedAmount={convertedAmount}
+      paymentMethod={paymentMethod}
+      description={description}
+      receipt={receipt}
+      productImage={productImage}
+      fromCurrency={fromCurrency}
+      toCurrency={toCurrency}
+      date={date}
+      time={time}
+      showSuccess={showSuccess}
+      recentPaymentMethods={recentPaymentMethods}
+      selectedCategory={selectedCategory}
+      amountInputRef={amountInputRef}
+      handleAmountChange={handleAmountChange}
+      handleCurrencyChange={handleCurrencyChange}
+      handlePaymentMethodChange={handlePaymentMethodChange}
+      handleSubmit={handleSubmit}
+      setDescription={setDescription}
+      setReceipt={setReceipt}
+      setProductImage={setProductImage}
+      paymentTypes={paymentTypes}
+      creditCards={creditCards}
+      debitCards={debitCards}
+      wallets={wallets}
+      currencyList={currencyList}
+    />
   );
 };
 

@@ -82,7 +82,7 @@ export const creditCards = [
 
 // Define a list of debit cards
 export const debitCards = [
-  { bank: 'Public Bank', type: 'Visa', last4: '5678' },
+  { bank: 'RHB', type: 'Visa', last4: '5678' },
   { bank: 'Maybank', type: 'MasterCard', last4: '9101' },
   // Add more debit cards here
 ];
