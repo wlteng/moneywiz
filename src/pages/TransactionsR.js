@@ -1,101 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../services/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import React from 'react';
 import { Modal, Button, DropdownButton, Dropdown, Badge } from 'react-bootstrap';
-import { FaInfoCircle } from 'react-icons/fa';
-import { categoryList } from '../data/General';
+import { FaInfoCircle, FaCalendarAlt, FaMoneyBillWave, FaTags } from 'react-icons/fa';
 
-const Transactions = () => {
-  const [transactions, setTransactions] = useState([]);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [filterMonth, setFilterMonth] = useState('');
-  const [filterCurrency, setFilterCurrency] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
+const TransactionsR = ({
+  groupedTransactions,
+  uniqueMonths,
+  uniqueCurrencies,
+  categoryList,
+  filterMonth,
+  filterCurrency,
+  filterCategory,
+  handleMonthChange,
+  handleCurrencyChange,
+  handleCategoryChange,
+  handleShowDescription,
+  handleShowPaymentDetails,
+  showModal,
+  showPaymentModal,
+  handleCloseModal,
+  handleClosePaymentModal,
+  selectedTransaction,
+  selectedPayment
+}) => {
+  const getPaymentMethodBadgeColor = (type) => {
+  if (!type) {
+    console.warn('Payment method type is undefined or null');
+    return 'secondary';
+  }
 
-  
-
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
-        const querySnapshot = await getDocs(q);
-        const fetchedTransactions = [];
-        querySnapshot.forEach((doc) => {
-          fetchedTransactions.push({ id: doc.id, ...doc.data() });
-        });
-        console.log('Fetched transactions:', fetchedTransactions);
-        setTransactions(fetchedTransactions);
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      }
-    };
-
-    fetchTransactions();
-  }, []);
-
-
-  const handleShowDescription = (transaction) => {
-    setSelectedTransaction(transaction);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
-
-  const handleShowPaymentDetails = (payment) => {
-    setSelectedPayment(payment);
-    setShowPaymentModal(true);
-  };
-
-  const handleClosePaymentModal = () => {
-    setShowPaymentModal(false);
-  };
-
-  const handleMonthChange = (month) => {
-    setFilterMonth(month);
-  };
-
-  const handleCurrencyChange = (currency) => {
-    setFilterCurrency(currency);
-  };
-
-  const handleCategoryChange = (category) => {
-    setFilterCategory(category);
-  };
-
-  const uniqueMonths = [
-    ...new Set(
-      transactions.map((transaction) =>
-        new Date(transaction.date).toLocaleString('default', { month: 'long', year: 'numeric' })
-      )
-    ),
-  ];
-
-  const uniqueCurrencies = [...new Set(transactions.map((transaction) => transaction.fromCurrency))];
-
-  const filteredTransactions = transactions.filter((transaction) => {
-    const transactionDate = new Date(transaction.date);
-    const monthMatches = filterMonth
-      ? transactionDate.toLocaleString('default', { month: 'long', year: 'numeric' }) === filterMonth
-      : true;
-    const currencyMatches = filterCurrency ? transaction.fromCurrency === filterCurrency : true;
-    const categoryMatches = filterCategory ? transaction.categoryId === filterCategory : true;
-    return monthMatches && currencyMatches && categoryMatches;
-  });
-
-  const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
-    const transactionDate = new Date(transaction.date);
-    const monthYear = transactionDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-    if (!acc[monthYear]) {
-      acc[monthYear] = [];
-    }
-    acc[monthYear].push(transaction);
-    return acc;
-  }, {});
+  switch (type.toLowerCase()) {
+    case 'e-wallet':
+    case 'ewallet':
+      return 'primary';
+    case 'debit card':
+    case 'debitcard':
+      return 'success';
+    case 'credit card':
+    case 'creditcard':
+      return 'danger';
+    case 'cash':
+      return 'secondary';
+    default:
+      console.warn(`Unknown payment method type: ${type}`);
+      return 'secondary';
+  }
+};
 
   const getMonthlyTotal = (transactions) => {
     return transactions.reduce((total, transaction) => total + parseFloat(transaction.convertedAmount), 0).toFixed(2);
@@ -106,35 +55,16 @@ const Transactions = () => {
     color: 'white',
   };
 
-  const getPaymentMethodBadgeColor = (type) => {
-    switch (type) {
-      case 'E-Wallet':
-        return 'primary';
-      case 'Debit Card':
-        return 'success';
-      case 'Credit Card':
-        return 'danger';
-      case 'Cash':
-      default:
-        return 'secondary';
-    }
-  };
-
-  console.log('Rendering Transactions component');
-  console.log('Grouped transactions:', groupedTransactions);
-
-  
-
   return (
     <div className="container mt-4">
       <h2>Transactions</h2>
 
-      <div className="mb-4 d-flex justify-content-end">
+      <div className="mb-4 d-flex justify-content-end flex-wrap">
         <DropdownButton
           variant="outline-secondary"
-          title={filterMonth || 'All months'}
+          title={<FaCalendarAlt />}
           id="input-group-dropdown-1"
-          className="me-2"
+          className="me-2 mb-2"
         >
           <Dropdown.Item onClick={() => handleMonthChange('')}>All months</Dropdown.Item>
           {uniqueMonths.map((month, index) => (
@@ -146,9 +76,9 @@ const Transactions = () => {
 
         <DropdownButton
           variant="outline-secondary"
-          title={filterCurrency || 'Input Currency'}
+          title={<FaMoneyBillWave />}
           id="input-group-dropdown-2"
-          className="me-2"
+          className="me-2 mb-2"
         >
           <Dropdown.Item onClick={() => handleCurrencyChange('')}>All currencies</Dropdown.Item>
           {uniqueCurrencies.map((currency, index) => (
@@ -160,8 +90,9 @@ const Transactions = () => {
 
         <DropdownButton
           variant="outline-secondary"
-          title={filterCategory ? categoryList.find(cat => cat.id === filterCategory)?.name : 'All categories'}
+          title={<FaTags />}
           id="input-group-dropdown-3"
+          className="mb-2"
         >
           <Dropdown.Item onClick={() => handleCategoryChange('')}>All categories</Dropdown.Item>
           {categoryList.map((category, index) => (
@@ -173,59 +104,60 @@ const Transactions = () => {
       </div>
 
       {Object.keys(groupedTransactions).length > 0 ? (
-        <table className="table table-striped">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Input</th>
-              <th>{localStorage.getItem('mainCurrency')}</th>
-              <th>Method</th>
-              <th>Category</th>
-              <th>Desc</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(groupedTransactions).map((monthYear, idx) => (
-              <React.Fragment key={idx}>
-                <tr style={monthHeaderStyle}>
-                  <td colSpan="3" className="fw-bold">{monthYear}</td>
-                  <td colSpan="4" className="fw-bold text-end">
-                    Total {localStorage.getItem('mainCurrency')} {getMonthlyTotal(groupedTransactions[monthYear])}
-                  </td>
-                </tr>
-                {groupedTransactions[monthYear].map((transaction) => (
-                  <tr key={transaction.id}>
-                    <td>{new Date(transaction.date).toLocaleDateString()}</td>
-                    <td>{new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{parseFloat(transaction.amount).toFixed(2)} {transaction.fromCurrency}</td>
-                    <td>{parseFloat(transaction.convertedAmount).toFixed(2)}</td>
-                    <td>
-                      <Badge
-                        bg={getPaymentMethodBadgeColor(transaction.paymentMethod.type)}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleShowPaymentDetails(transaction.paymentMethod)}
-                      >
-                        {transaction.paymentMethod.type === 'Cash' ? 'Cash' : `${transaction.paymentMethod.type}: ${transaction.paymentMethod.last4}`}
-                      </Badge>
-                    </td>
-                    <td>{categoryList.find(cat => cat.id === transaction.categoryId)?.name || 'N/A'}</td>
-                    <td>
-                      <FaInfoCircle
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleShowDescription(transaction)}
-                      />
+        <div className="table-responsive">
+          <table className="table table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Input</th>
+                <th>{localStorage.getItem('mainCurrency')}</th>
+                <th>Method</th>
+                <th>Category</th>
+                <th>Desc</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(groupedTransactions).map((monthYear, idx) => (
+                <React.Fragment key={idx}>
+                  <tr style={monthHeaderStyle}>
+                    <td colSpan="3" className="fw-bold">{monthYear}</td>
+                    <td colSpan="4" className="fw-bold text-end">
+                      Total {localStorage.getItem('mainCurrency')} {getMonthlyTotal(groupedTransactions[monthYear])}
                     </td>
                   </tr>
-                ))}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                  {groupedTransactions[monthYear].map((transaction) => (
+                    <tr key={transaction.id}>
+                      <td>{new Date(transaction.date).toLocaleDateString()}</td>
+                      <td>{new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                      <td>{parseFloat(transaction.amount).toFixed(2)} {transaction.fromCurrency}</td>
+                      <td>{parseFloat(transaction.convertedAmount).toFixed(2)}</td>
+                      <td>
+                        <Badge
+                          bg={getPaymentMethodBadgeColor(transaction.paymentMethod.type)}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleShowPaymentDetails(transaction.paymentMethod)}
+                        >
+                          {transaction.paymentMethod.type === 'Cash' ? 'Cash' : `${transaction.paymentMethod.type}: ${transaction.paymentMethod.last4}`}
+                        </Badge>
+                      </td>
+                      <td>{categoryList.find(cat => cat.id === transaction.categoryId)?.name || 'N/A'}</td>
+                      <td>
+                        <FaInfoCircle
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleShowDescription(transaction)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p>No transactions found.</p>
       )}
-
 
       {/* Modal for Description */}
       <Modal show={showModal} onHide={handleCloseModal}>
@@ -259,4 +191,4 @@ const Transactions = () => {
   );
 };
 
-export default Transactions;
+export default TransactionsR;
