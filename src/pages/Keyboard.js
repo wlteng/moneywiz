@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { paymentTypes, getConvertedAmount, currencyList, creditCards, debitCards, wallets, categoryList } from '../data/General';
-import { db } from '../services/firebase';
+import { db, storage } from '../services/firebase';
 import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { auth } from '../services/firebase';
 import KeyboardR from './KeyboardR';
 
@@ -24,6 +25,8 @@ const Keyboard = () => {
   const [recentPaymentMethods, setRecentPaymentMethods] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(categoryList.find(cat => cat.id === categoryId) || categoryList[0]);
   const amountInputRef = useRef(null);
+  const [receiptProgress, setReceiptProgress] = useState(0);
+  const [productImageProgress, setProductImageProgress] = useState(0);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -67,7 +70,8 @@ const Keyboard = () => {
             type: data.paymentMethod.type,
             last4: data.paymentMethod.last4,
             bank: data.paymentMethod.bank,
-            currency: data.fromCurrency
+            currency: data.fromCurrency,
+            name: data.paymentMethod.name // Add this line for e-wallet name
           };
         });
         const uniqueMethods = Array.from(new Set(methods.map(JSON.stringify))).map(JSON.parse);
@@ -102,6 +106,34 @@ const Keyboard = () => {
 
   const handlePaymentMethodChange = (method) => {
     setPaymentMethod(method);
+    if (amountInputRef.current) {
+      amountInputRef.current.focus();
+    }
+  };
+
+  const handleImageUpload = async (file, setProgress) => {
+    if (!file) return null;
+
+    const storageRef = ref(storage, `images/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgress(progress);
+        },
+        (error) => {
+          console.error('Upload error:', error);
+          reject(error);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        }
+      );
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -121,6 +153,9 @@ const Keyboard = () => {
         return;
       }
 
+      const receiptURL = await handleImageUpload(receipt, setReceiptProgress);
+      const productImageURL = await handleImageUpload(productImage, setProductImageProgress);
+
       const transactionDate = new Date(`${date}T${time}`);
       const transaction = {
         amount: parseFloat(amount).toFixed(2),
@@ -128,11 +163,12 @@ const Keyboard = () => {
         paymentMethod: {
           type: paymentMethod.type,
           last4: paymentMethod.last4 || 'N/A',
-          bank: paymentMethod.bank || 'N/A'
+          bank: paymentMethod.bank || 'N/A',
+          name: paymentMethod.name || 'N/A'
         },
         description,
-        receipt,
-        productImage,
+        receipt: receiptURL,
+        productImage: productImageURL,
         date: transactionDate.toISOString(),
         fromCurrency,
         toCurrency,

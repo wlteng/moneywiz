@@ -1,7 +1,9 @@
 import React from 'react';
-import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge } from 'react-bootstrap';
+import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge, ProgressBar } from 'react-bootstrap';
 
 const KeyboardR = ({
+  receiptProgress,
+  productImageProgress,
   amount,
   convertedAmount,
   paymentMethod,
@@ -38,6 +40,8 @@ const KeyboardR = ({
       return `cash-${method.currency || fromCurrency}`;
     } else if (method.type === 'Credit Card' || method.type === 'Debit Card') {
       return `${method.bank}-${method.last4}`;
+    } else if (method.type === 'E-Wallet') {
+      return `${method.name}`;
     } else {
       return `${method.type.toLowerCase().replace(' ', '')}-${method.bank || method.currency || fromCurrency}`;
     }
@@ -61,7 +65,7 @@ const KeyboardR = ({
     <Container className="mt-4 pb-5" style={{ maxWidth: '100%' }}>
       <h2 className="mb-4">{selectedCategory.name}</h2>
       
-      <div className="overflow-auto" style={{ whiteSpace: 'nowrap', height: '60px' }}>
+      <div className="overflow-auto mb-4" style={{ whiteSpace: 'nowrap', height: '60px' }}>
         {recentPaymentMethods.map((method, index) => (
           <Button 
             key={index} 
@@ -77,7 +81,18 @@ const KeyboardR = ({
       <Form onSubmit={handleSubmit}>
         <div className="mb-4">
           <InputGroup>
-            <InputGroup.Text>{fromCurrency}</InputGroup.Text>
+            <DropdownButton
+              as={InputGroup.Prepend}
+              variant="outline-secondary"
+              title={fromCurrency}
+              id="input-group-dropdown-1"
+            >
+              {currencyList.map((currency) => (
+                <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
+                  {currency.name}
+                </Dropdown.Item>
+              ))}
+            </DropdownButton>
             <Form.Control
               type="text"
               value={amount}
@@ -89,7 +104,7 @@ const KeyboardR = ({
               variant={getPaymentMethodBadgeColor(paymentMethod.type)}
               disabled
             >
-              {paymentMethod.type === 'Cash' ? `${paymentMethod.type}-${fromCurrency}` : `${paymentMethod.type}: ${paymentMethod.last4}`}
+              {paymentMethod.type === 'Cash' ? 'Cash' : paymentMethod.type}
             </Button>
           </InputGroup>
           <small>Converted: {convertedAmount || '0.00'} {toCurrency}</small>
@@ -131,7 +146,7 @@ const KeyboardR = ({
                   )}
                   {type === 'Credit Card' && creditCards.map((card, cardIndex) => (
                     <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Credit Card'})}>
-                      {card.bank} - {card.last4}
+                      {card.bank} - {card.name} - {card.last4}
                     </Dropdown.Item>
                   ))}
                   {type === 'Debit Card' && debitCards.map((card, cardIndex) => (
@@ -163,15 +178,17 @@ const KeyboardR = ({
         </div>
 
         <div className="mb-4">
-          <Form.Group>
-            <Form.Label>Receipt</Form.Label>
-            <Form.Control type="file" onChange={(e) => setReceipt(e.target.files[0])} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Product Image</Form.Label>
-            <Form.Control type="file" onChange={(e) => setProductImage(e.target.files[0])} />
-          </Form.Group>
-        </div>
+        <Form.Group>
+          <Form.Label>Receipt</Form.Label>
+          <Form.Control type="file" onChange={(e) => setReceipt(e.target.files[0])} />
+          {receiptProgress > 0 && <ProgressBar now={receiptProgress} label={`${Math.round(receiptProgress)}%`} />}
+        </Form.Group>
+        <Form.Group>
+          <Form.Label>Product Image</Form.Label>
+          <Form.Control type="file" onChange={(e) => setProductImage(e.target.files[0])} />
+          {productImageProgress > 0 && <ProgressBar now={productImageProgress} label={`${Math.round(productImageProgress)}%`} />}
+        </Form.Group>
+      </div>
         
         <Button variant="primary" type="submit">Submit</Button>
       </Form>

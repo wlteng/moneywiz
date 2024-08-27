@@ -1,26 +1,53 @@
-import React from 'react';
-import Overview from './Overview';
-import Transactions from './Transactions';
-import { Nav, Container, Row, Col } from 'react-bootstrap';
-import { Link, Route, Routes } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col } from 'react-bootstrap';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 const Report = () => {
+  const [transactions, setTransactions] = useState([]);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTransactions(fetchedTransactions);
+    };
+
+    fetchTransactions();
+  }, []);
+
+  const processDataForChart = () => {
+    const groupedData = transactions.reduce((acc, transaction) => {
+      const date = new Date(transaction.date).toLocaleDateString();
+      if (!acc[date]) {
+        acc[date] = 0;
+      }
+      acc[date] += parseFloat(transaction.convertedAmount);
+      return acc;
+    }, {});
+
+    return Object.entries(groupedData).map(([date, amount]) => ({ date, amount }));
+  };
+
+  const chartData = processDataForChart();
+
   return (
-    <Container className="mt-4">
-      <Nav variant="tabs" defaultActiveKey="overview">
-        <Nav.Item>
-          <Nav.Link as={Link} to="overview">Overview</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as={Link} to="transactions">Transactions</Nav.Link>
-        </Nav.Item>
-      </Nav>
-      <Row className="mt-4">
+    <Container>
+      <h1 className="my-4">Expense Report</h1>
+      <Row>
         <Col>
-          <Routes>
-            <Route path="overview" element={<Overview />} />
-            <Route path="transactions" element={<Transactions />} />
-          </Routes>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="amount" stroke="#8884d8" activeDot={{ r: 8 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </Col>
       </Row>
     </Container>

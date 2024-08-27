@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Button, DropdownButton, Dropdown, Badge } from 'react-bootstrap';
 import { FaInfoCircle, FaCalendarAlt, FaMoneyBillWave, FaTags } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const TransactionsR = ({
   groupedTransactions,
@@ -23,28 +24,28 @@ const TransactionsR = ({
   selectedPayment
 }) => {
   const getPaymentMethodBadgeColor = (type) => {
-  if (!type) {
-    console.warn('Payment method type is undefined or null');
-    return 'secondary';
-  }
+    if (!type) {
+      console.warn('Payment method type is undefined or null');
+      return 'secondary';
+    }
 
-  switch (type.toLowerCase()) {
-    case 'e-wallet':
-    case 'ewallet':
-      return 'primary';
-    case 'debit card':
-    case 'debitcard':
-      return 'success';
-    case 'credit card':
-    case 'creditcard':
-      return 'danger';
-    case 'cash':
-      return 'secondary';
-    default:
-      console.warn(`Unknown payment method type: ${type}`);
-      return 'secondary';
-  }
-};
+    switch (type.toLowerCase()) {
+      case 'e-wallet':
+      case 'ewallet':
+        return 'primary';
+      case 'debit card':
+      case 'debitcard':
+        return 'success';
+      case 'credit card':
+      case 'creditcard':
+        return 'danger';
+      case 'cash':
+        return 'secondary';
+      default:
+        console.warn(`Unknown payment method type: ${type}`);
+        return 'secondary';
+    }
+  };
 
   const getMonthlyTotal = (transactions) => {
     return transactions.reduce((total, transaction) => total + parseFloat(transaction.convertedAmount), 0).toFixed(2);
@@ -121,24 +122,33 @@ const TransactionsR = ({
               {Object.keys(groupedTransactions).map((monthYear, idx) => (
                 <React.Fragment key={idx}>
                   <tr style={monthHeaderStyle}>
-                    <td colSpan="3" className="fw-bold">{monthYear}</td>
-                    <td colSpan="4" className="fw-bold text-end">
-                      Total {localStorage.getItem('mainCurrency')} {getMonthlyTotal(groupedTransactions[monthYear])}
+                    <td colSpan="7" className="fw-bold">
+                      {monthYear} ({localStorage.getItem('mainCurrency')} {getMonthlyTotal(groupedTransactions[monthYear])})
                     </td>
                   </tr>
                   {groupedTransactions[monthYear].map((transaction) => (
                     <tr key={transaction.id}>
                       <td>{new Date(transaction.date).toLocaleDateString()}</td>
                       <td>{new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                      <td>{parseFloat(transaction.amount).toFixed(2)} {transaction.fromCurrency}</td>
-                      <td>{parseFloat(transaction.convertedAmount).toFixed(2)}</td>
+                      <td>
+                        <Link to={`/transaction/${transaction.id}`} style={{ color: 'rgb(27, 145, 184)', fontWeight: 'bold',textDecoration: 'none' }}>
+                          {parseFloat(transaction.amount).toFixed(2)} {transaction.fromCurrency}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link to={`/transaction/${transaction.id}`} style={{ color: 'rgb(27, 145, 184)', fontWeight: 'bold',textDecoration: 'none' }}>
+                          {parseFloat(transaction.convertedAmount).toFixed(2)}
+                        </Link>
+                      </td>
                       <td>
                         <Badge
                           bg={getPaymentMethodBadgeColor(transaction.paymentMethod.type)}
                           style={{ cursor: 'pointer' }}
                           onClick={() => handleShowPaymentDetails(transaction.paymentMethod)}
                         >
-                          {transaction.paymentMethod.type === 'Cash' ? 'Cash' : `${transaction.paymentMethod.type}: ${transaction.paymentMethod.last4}`}
+                          {transaction.paymentMethod.type === 'Cash' ? 'Cash' : 
+                           transaction.paymentMethod.type === 'E-Wallet' ? transaction.paymentMethod.name :
+                           `${transaction.paymentMethod.type}: ${transaction.paymentMethod.last4}`}
                         </Badge>
                       </td>
                       <td>{categoryList.find(cat => cat.id === transaction.categoryId)?.name || 'N/A'}</td>
@@ -160,7 +170,7 @@ const TransactionsR = ({
       )}
 
       {/* Modal for Description */}
-      <Modal show={showModal} onHide={handleCloseModal}>
+      <Modal show={showModal} onHide={handleCloseModal} centered>
         <Modal.Body>{selectedTransaction?.description || 'No description available'}</Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseModal}>
@@ -170,14 +180,21 @@ const TransactionsR = ({
       </Modal>
 
       {/* Modal for Payment Details */}
-      <Modal show={showPaymentModal} onHide={handleClosePaymentModal}>
+      <Modal show={showPaymentModal} onHide={handleClosePaymentModal} centered>
         <Modal.Body>
           <h5>Payment Details</h5>
           <p>Type: {selectedPayment?.type}</p>
-          {selectedPayment?.type !== 'Cash' && (
+          {selectedPayment?.type === 'Cash' && (
+            <p>Currency: {selectedPayment?.currency}</p>
+          )}
+          {selectedPayment?.type === 'E-Wallet' && (
+            <p>Name: {selectedPayment?.name}</p>
+          )}
+          {(selectedPayment?.type === 'Credit Card' || selectedPayment?.type === 'Debit Card') && (
             <>
               <p>Card: **** **** **** {selectedPayment?.last4}</p>
               <p>Bank: {selectedPayment?.bank}</p>
+              {selectedPayment?.type === 'Credit Card' && <p>Card Name: {selectedPayment?.name}</p>}
             </>
           )}
         </Modal.Body>

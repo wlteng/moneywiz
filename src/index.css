@@ -32,3 +32,14 @@ body.modal-open {
   overflow-x: hidden;
   overflow-y: auto;
 }
+
+.bm-burger-button,
+.bm-cross-button,
+.bm-menu-wrap,
+.bm-overlay {
+  z-index: 1000 !important;
+}
+
+.bm-burger-button {
+  z-index: 1001 !important;
+}

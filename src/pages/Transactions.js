@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useMediaQuery } from 'react-responsive';
 import { db } from '../services/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { categoryList } from '../data/General';
-import TransactionsR from './TransactionsR';
+import TransactionsR from '../components/TransactionsR';
+import TransactionMobile from '../components/TransactionMobile';
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -13,6 +15,8 @@ const Transactions = () => {
   const [filterMonth, setFilterMonth] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+
+  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -93,7 +97,12 @@ const Transactions = () => {
     return acc;
   }, {});
 
-  return (
+  return isMobile ? (
+    <TransactionMobile
+      groupedTransactions={groupedTransactions}
+      categoryList={categoryList}
+    />
+  ) : (
     <TransactionsR
       groupedTransactions={groupedTransactions}
       uniqueMonths={uniqueMonths}
