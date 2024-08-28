@@ -1,0 +1,68 @@
+/* ReportInvest.css */
+
+.investment-table {
+  width: 100%;
+}
+
+.investment-table th,
+.investment-table td {
+  padding: 8px;
+  white-space: nowrap;
+}
+
+.investment-table .title-column {
+  width: 120px;
+}
+
+.investment-table .title-cell {
+  max-width: 120px;
+  cursor: pointer;
+}
+
+.investment-table .title-cell .truncate {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.investment-table .truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.summary-row {
+  margin-bottom: 0px;
+}
+
+.summary-item {
+  margin-bottom: 10px;
+}
+
+.summary-label {
+  font-weight: bold;
+  display: block;
+}
+
+.summary-value {
+  font-size: 1.2em;
+}
+
+@media (max-width: 768px) {
+  .investment-table th,
+  .investment-table td {
+    font-size: 14px;
+  }
+
+  .summary-label {
+    font-size: 14px;
+  }
+
+  .summary-value {
+    font-size: 16px;
+  }
+}
