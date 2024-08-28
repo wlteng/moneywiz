@@ -97,32 +97,31 @@ const Transactions = () => {
     return acc;
   }, {});
 
+  const commonProps = {
+    groupedTransactions,
+    uniqueMonths,
+    uniqueCurrencies,
+    categoryList,
+    filterMonth,
+    filterCurrency,
+    filterCategory,
+    handleMonthChange,
+    handleCurrencyChange,
+    handleCategoryChange,
+    handleShowDescription,
+    handleShowPaymentDetails,
+    showModal,
+    showPaymentModal,
+    handleCloseModal,
+    handleClosePaymentModal,
+    selectedTransaction,
+    selectedPayment
+  };
+
   return isMobile ? (
-    <TransactionMobile
-      groupedTransactions={groupedTransactions}
-      categoryList={categoryList}
-    />
+    <TransactionMobile {...commonProps} />
   ) : (
-    <TransactionsR
-      groupedTransactions={groupedTransactions}
-      uniqueMonths={uniqueMonths}
-      uniqueCurrencies={uniqueCurrencies}
-      categoryList={categoryList}
-      filterMonth={filterMonth}
-      filterCurrency={filterCurrency}
-      filterCategory={filterCategory}
-      handleMonthChange={handleMonthChange}
-      handleCurrencyChange={handleCurrencyChange}
-      handleCategoryChange={handleCategoryChange}
-      handleShowDescription={handleShowDescription}
-      handleShowPaymentDetails={handleShowPaymentDetails}
-      showModal={showModal}
-      showPaymentModal={showPaymentModal}
-      handleCloseModal={handleCloseModal}
-      handleClosePaymentModal={handleClosePaymentModal}
-      selectedTransaction={selectedTransaction}
-      selectedPayment={selectedPayment}
-    />
+    <TransactionsR {...commonProps} />
   );
 };
 

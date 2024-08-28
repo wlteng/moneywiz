@@ -41,6 +41,7 @@ const Header = () => {
       >
         <Link to="/" className="bm-item" onClick={() => handleNavigation('/')}>Home</Link>
         <Link to="/transactions" className="bm-item" onClick={() => handleNavigation('/transactions')}>Transactions</Link>
+        <Link to="/investments" className="bm-item" onClick={() => handleNavigation('/investments')}>Investments</Link>
         <Link to="/report" className="bm-item" onClick={() => handleNavigation('/report')}>Report</Link>
         <Link to="/profile" className="bm-item" onClick={() => handleNavigation('/profile')}>Profile</Link>
       </Menu>

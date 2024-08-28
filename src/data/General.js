@@ -86,3 +86,43 @@ export const debitCards = [
   { bank: 'Maybank', type: 'MasterCard', last4: '9101' },
   // Add more debit cards here
 ];
+
+export const investmentPlatforms = [
+  'Robinhood',
+  'E*TRADE',
+  'Fidelity',
+  'Charles Schwab',
+  'TD Ameritrade',
+  'Interactive Brokers',
+  'Vanguard',
+  'Merrill Edge',
+  'Webull',
+  'Coinbase',
+  'Binance',
+  'Kraken',
+  // Add more platforms as needed
+];
+
+export const investmentTypes = [
+  'Share',
+  'Crypto',
+  'Commodity',
+  'Asset',
+  'Pension'
+];
+
+export const investmentStyles = [
+  { value: 'short', label: 'Short-term', description: 'Sell when some earning' },
+  { value: 'longterm', label: 'Long-term', description: 'Sell when there is large increase and seems like it going to decrease' },
+  { value: 'never', label: 'Never sell', description: 'Never sell, like pension fund' }
+];
+
+export const unitOptions = [
+  'share',
+  'gram',
+  'litre',
+  'ounce',
+  'kilogram',
+  'unit',
+  // Add more units as needed
+];
