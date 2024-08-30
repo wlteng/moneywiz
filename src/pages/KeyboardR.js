@@ -1,9 +1,7 @@
 import React from 'react';
-import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge, ProgressBar } from 'react-bootstrap';
+import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge } from 'react-bootstrap';
 
 const KeyboardR = ({
-  receiptProgress,
-  productImageProgress,
   amount,
   convertedAmount,
   paymentMethod,
@@ -17,6 +15,9 @@ const KeyboardR = ({
   showSuccess,
   recentPaymentMethods,
   selectedCategory,
+  userCategories,  // Added this prop
+  setSelectedCategory,  // Added this prop
+   userPaymentMethods, // Add this line
   amountInputRef,
   handleAmountChange,
   handleCurrencyChange,
@@ -25,25 +26,27 @@ const KeyboardR = ({
   setDescription,
   setReceipt,
   setProductImage,
-  paymentTypes,
-  creditCards,
-  debitCards,
-  wallets,
   currencyList
 }) => {
   const getPaymentMethodTag = (method) => {
     if (!method || !method.type) {
-      return '';
+      return 'Unknown';
     }
 
-    if (method.type === 'Cash') {
-      return `cash-${method.currency || fromCurrency}`;
-    } else if (method.type === 'Credit Card' || method.type === 'Debit Card') {
-      return `${method.bank}-${method.last4}`;
-    } else if (method.type === 'E-Wallet') {
-      return `${method.name}`;
-    } else {
-      return `${method.type.toLowerCase().replace(' ', '')}-${method.bank || method.currency || fromCurrency}`;
+    switch (method.type) {
+      case 'Cash':
+        return 'Cash';
+      case 'Credit Card':
+      case 'Debit Card':
+        return method.details && method.details.bank && method.details.last4
+          ? `${method.details.bank}-${method.details.last4}`
+          : `${method.type}`;
+      case 'E-Wallet':
+        return method.details && method.details.name
+          ? `${method.type}: ${method.details.name}`
+          : `${method.type}`;
+      default:
+        return `${method.type}`;
     }
   };
 
@@ -63,20 +66,27 @@ const KeyboardR = ({
 
   return (
     <Container className="mt-4 pb-5" style={{ maxWidth: '100%' }}>
-      <h2 className="mb-4">{selectedCategory.name}</h2>
-      
-      <div className="overflow-auto mb-4" style={{ whiteSpace: 'nowrap', height: '60px' }}>
-        {recentPaymentMethods.map((method, index) => (
-          <Button 
-            key={index} 
-            variant={getPaymentMethodBadgeColor(method.type)}
-            style={{ margin: '0 5px 0 0', cursor: 'pointer', color: '#fff' }}
-            onClick={() => handlePaymentMethodChange(method)}
-          >
-            {getPaymentMethodTag(method)}
-          </Button>
-        ))}
-      </div>
+      <h2 className="mb-4">
+        {selectedCategory ? selectedCategory.name : 'Select a Category'}
+      </h2>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Category</Form.Label>
+        <Form.Select
+          value={selectedCategory ? selectedCategory.id : ''}
+          onChange={(e) => {
+            const category = userCategories.find(cat => cat.id === e.target.value);
+            setSelectedCategory(category);
+          }}
+        >
+          <option value="">Select a category</option>
+          {userCategories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </Form.Select>
+      </Form.Group>
 
       <Form onSubmit={handleSubmit}>
         <div className="mb-4">
@@ -104,7 +114,7 @@ const KeyboardR = ({
               variant={getPaymentMethodBadgeColor(paymentMethod.type)}
               disabled
             >
-              {paymentMethod.type === 'Cash' ? 'Cash' : paymentMethod.type}
+              {getPaymentMethodTag(paymentMethod)}
             </Button>
           </InputGroup>
           <small>Converted: {convertedAmount || '0.00'} {toCurrency}</small>
@@ -130,40 +140,20 @@ const KeyboardR = ({
         </Row>
 
         <div className="mb-4">
-          <Row>
-            {paymentTypes.map((type, index) => (
-              <Col key={index} xs={6} className="mb-2">
-                <DropdownButton
-                  variant={getPaymentMethodBadgeColor(type)}
-                  title={type}
-                  id={`payment-dropdown-${index}`}
-                  className="w-100"
-                >
-                  {type === 'Cash' && (
-                    <Dropdown.Item onClick={() => handlePaymentMethodChange({ type: 'Cash' })}>
-                      Cash
-                    </Dropdown.Item>
-                  )}
-                  {type === 'Credit Card' && creditCards.map((card, cardIndex) => (
-                    <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Credit Card'})}>
-                      {card.bank} - {card.name} - {card.last4}
-                    </Dropdown.Item>
-                  ))}
-                  {type === 'Debit Card' && debitCards.map((card, cardIndex) => (
-                    <Dropdown.Item key={cardIndex} onClick={() => handlePaymentMethodChange({...card, type: 'Debit Card'})}>
-                      {card.bank} - {card.last4}
-                    </Dropdown.Item>
-                  ))}
-                  {type === 'E-Wallet' && wallets.map((wallet, walletIndex) => (
-                    <Dropdown.Item key={walletIndex} onClick={() => handlePaymentMethodChange({...wallet, type: 'E-Wallet'})}>
-                      {wallet.name} ({wallet.country})
-                    </Dropdown.Item>
-                  ))}
-                </DropdownButton>
-              </Col>
-            ))}
-          </Row>
-        </div>
+        <Row>
+          {userPaymentMethods.map((method, index) => (
+            <Col key={index} xs={6} className="mb-2">
+              <Button
+                variant={getPaymentMethodBadgeColor(method.type)}
+                onClick={() => handlePaymentMethodChange(method)}
+                className="w-100"
+              >
+                {getPaymentMethodTag(method)}
+              </Button>
+            </Col>
+          ))}
+        </Row>
+      </div>
 
         <div className="mb-4">
           <Form.Group>
@@ -178,18 +168,16 @@ const KeyboardR = ({
         </div>
 
         <div className="mb-4">
-        <Form.Group>
-          <Form.Label>Receipt</Form.Label>
-          <Form.Control type="file" onChange={(e) => setReceipt(e.target.files[0])} />
-          {receiptProgress > 0 && <ProgressBar now={receiptProgress} label={`${Math.round(receiptProgress)}%`} />}
-        </Form.Group>
-        <Form.Group>
-          <Form.Label>Product Image</Form.Label>
-          <Form.Control type="file" onChange={(e) => setProductImage(e.target.files[0])} />
-          {productImageProgress > 0 && <ProgressBar now={productImageProgress} label={`${Math.round(productImageProgress)}%`} />}
-        </Form.Group>
-      </div>
-        
+          <Form.Group>
+            <Form.Label>Receipt</Form.Label>
+            <Form.Control type="file" onChange={(e) => setReceipt(e.target.files[0])} />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Product Image</Form.Label>
+            <Form.Control type="file" onChange={(e) => setProductImage(e.target.files[0])} />
+          </Form.Group>
+        </div>
+
         <Button variant="primary" type="submit">Submit</Button>
       </Form>
 

@@ -42,13 +42,15 @@ const Header = () => {
         <Link to="/" className="bm-item" onClick={() => handleNavigation('/')}>Home</Link>
         <Link to="/transactions" className="bm-item" onClick={() => handleNavigation('/transactions')}>Transactions</Link>
         <Link to="/investments" className="bm-item" onClick={() => handleNavigation('/investments')}>Investments</Link>
+        <Link to="/debts" className="bm-item" onClick={() => handleNavigation('/debts')}>Debts</Link>
         <Link to="/report" className="bm-item" onClick={() => handleNavigation('/report')}>Report</Link>
         <Link to="/profile" className="bm-item" onClick={() => handleNavigation('/profile')}>Profile</Link>
       </Menu>
-      <div style={logoStyles}>Your App Name</div>
+      <div style={logoStyles} onClick={() => navigate('/')}>Your App Name</div>
     </header>
   );
 };
+
 
 const BurgerIcon = () => (
   <div style={burgerIconStyles}>

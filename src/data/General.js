@@ -45,8 +45,16 @@ export const currencyList = [
   { code: 'GBP', name: 'British Pound' },
   { code: 'SGD', name: 'Singapore Dollar' },
   { code: 'AUD', name: 'Australian Dollar' },
+  { code: 'RMB', name: 'Chinese Yuan' },
+  { code: 'THB', name: 'Thai Baht' },          // Thailand
+  { code: 'IDR', name: 'Indonesian Rupiah' },  // Indonesia
+  { code: 'PHP', name: 'Philippine Peso' },    // Philippines
+  { code: 'VND', name: 'Vietnamese Dong' },    // Vietnam
+  { code: 'BND', name: 'Brunei Dollar' },      // Brunei
+  { code: 'KHR', name: 'Cambodian Riel' },     // Cambodia
+  { code: 'HKD', name: 'Hong Kong Dollar' },   // Hong Kong
+  { code: 'MOP', name: 'Macanese Pataca' },    // Macao
 ];
-
 // Define a list of categories for your application
 export const categoryList = [
   { id: 'food', name: 'Food' },

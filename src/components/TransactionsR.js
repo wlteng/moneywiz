@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Button, DropdownButton, Dropdown, Badge } from 'react-bootstrap';
-import { FaInfoCircle, FaCalendarAlt, FaMoneyBillWave, FaTags } from 'react-icons/fa';
+import { FaCalendarAlt, FaMoneyBillWave, FaTags, FaFileAlt, FaImage } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 const TransactionsR = ({
@@ -14,13 +14,9 @@ const TransactionsR = ({
   handleMonthChange,
   handleCurrencyChange,
   handleCategoryChange,
-  handleShowDescription,
   handleShowPaymentDetails,
-  showModal,
   showPaymentModal,
-  handleCloseModal,
   handleClosePaymentModal,
-  selectedTransaction,
   selectedPayment
 }) => {
   const getPaymentMethodBadgeColor = (type) => {
@@ -115,7 +111,7 @@ const TransactionsR = ({
                 <th>{localStorage.getItem('mainCurrency')}</th>
                 <th>Method</th>
                 <th>Category</th>
-                <th>Desc</th>
+                <th>More</th>
               </tr>
             </thead>
             <tbody>
@@ -153,10 +149,8 @@ const TransactionsR = ({
                       </td>
                       <td>{categoryList.find(cat => cat.id === transaction.categoryId)?.name || 'N/A'}</td>
                       <td>
-                        <FaInfoCircle
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleShowDescription(transaction)}
-                        />
+                        {transaction.description && <FaFileAlt className="me-2" />}
+                        {(transaction.receipt || transaction.productImage) && <FaImage />}
                       </td>
                     </tr>
                   ))}
@@ -168,16 +162,6 @@ const TransactionsR = ({
       ) : (
         <p>No transactions found.</p>
       )}
-
-      {/* Modal for Description */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
-        <Modal.Body>{selectedTransaction?.description || 'No description available'}</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
       {/* Modal for Payment Details */}
       <Modal show={showPaymentModal} onHide={handleClosePaymentModal} centered>

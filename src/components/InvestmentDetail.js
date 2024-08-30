@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Button, Form, Modal } from 'react-bootstrap';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Container, Button, Form, Modal, Row, Col } from 'react-bootstrap';
+import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { FaChartLine, FaEdit, FaTrash } from 'react-icons/fa';
 
 const InvestmentDetail = () => {
   const { id } = useParams();
@@ -11,7 +12,7 @@ const InvestmentDetail = () => {
   const [showSellModal, setShowSellModal] = useState(false);
   const [sellAmount, setSellAmount] = useState('');
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchInvestment = async () => {
       const docRef = doc(db, 'investments', id);
       const docSnap = await getDoc(docRef);
@@ -51,10 +52,36 @@ const InvestmentDetail = () => {
     }
   };
 
+  const handleEdit = () => {
+    console.log("Edit functionality to be implemented");
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete this investment?")) {
+      try {
+        await deleteDoc(doc(db, 'investments', id));
+        navigate('/investments');
+      } catch (error) {
+        console.error("Error deleting investment: ", error);
+      }
+    }
+  };
+
   if (!investment) return <div>Loading...</div>;
 
   return (
     <Container>
+      <Row className="mt-3 mb-4">
+        <Col>
+          <Button variant="outline-primary" onClick={() => navigate('/investments')}>Back</Button>
+        </Col>
+        <Col className="text-end">
+          <Button variant="outline-info" onClick={() => navigate('/report/investments')}>
+            <FaChartLine />
+          </Button>
+        </Col>
+      </Row>
+
       <h2>{investment.title}</h2>
       <p><strong>Type:</strong> {investment.type}</p>
       <p><strong>Platform:</strong> {investment.platform}</p>
@@ -64,18 +91,33 @@ const InvestmentDetail = () => {
       <p><strong>Unit Price:</strong> {investment.unitPrice}</p>
       <p><strong>Investment Style:</strong> {investment.style}</p>
 
-      {investment.soldAmount ? (
+      {investment.soldAmount && (
         <>
           <p><strong>Sold Amount:</strong> {investment.soldAmount}</p>
           <p><strong>Sold Date:</strong> {new Date(investment.soldDate).toLocaleString()}</p>
           <p><strong>Profit/Loss:</strong> {investment.profit > 0 ? `+${investment.profit}` : investment.profit}</p>
         </>
-      ) : (
-        <Button variant="primary" onClick={() => setShowSellModal(true)}>Sell</Button>
       )}
 
-      <Button variant="secondary" className="ms-2" onClick={() => navigate('/investments')}>Back to Investments</Button>
-      <Button variant="info" className="ms-2" onClick={() => navigate('/report/investments')}>Go to Investment Report</Button>
+      <Row className="mt-4">
+        <Col xs={4} className="d-flex justify-content-center">
+          {!investment.soldAmount && (
+            <Button variant="primary" onClick={() => setShowSellModal(true)} className="w-100">
+              Sell
+            </Button>
+          )}
+        </Col>
+        <Col xs={4} className="d-flex justify-content-center">
+          <Button variant="warning" onClick={handleEdit} className="w-100">
+            <FaEdit /> Edit
+          </Button>
+        </Col>
+        <Col xs={4} className="d-flex justify-content-center">
+          <Button variant="danger" onClick={handleDelete} className="w-100">
+            <FaTrash /> Delete
+          </Button>
+        </Col>
+      </Row>
 
       <Modal show={showSellModal} onHide={() => setShowSellModal(false)}>
         <Modal.Header closeButton>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { paymentTypes, getConvertedAmount, currencyList, creditCards, debitCards, wallets, categoryList } from '../data/General';
+import { getConvertedAmount, currencyList } from '../data/General';
 import { db, storage } from '../services/firebase';
-import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { auth } from '../services/firebase';
 import KeyboardR from './KeyboardR';
@@ -12,7 +12,7 @@ const Keyboard = () => {
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [convertedAmount, setConvertedAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState({ type: 'Cash', last4: 'N/A', bank: 'N/A' });
+  const [paymentMethod, setPaymentMethod] = useState({ type: 'Cash', details: {} });
   const [description, setDescription] = useState('');
   const [receipt, setReceipt] = useState(null);
   const [productImage, setProductImage] = useState(null);
@@ -23,15 +23,18 @@ const Keyboard = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [user, setUser] = useState(null);
   const [recentPaymentMethods, setRecentPaymentMethods] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(categoryList.find(cat => cat.id === categoryId) || categoryList[0]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [userCategories, setUserCategories] = useState([]);
   const amountInputRef = useRef(null);
   const [receiptProgress, setReceiptProgress] = useState(0);
   const [productImageProgress, setProductImageProgress] = useState(0);
+  const [userPaymentMethods, setUserPaymentMethods] = useState([]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
+        fetchUserData(user.uid);
         const storedCurrency = localStorage.getItem('mainCurrency');
         if (storedCurrency) {
           setToCurrency(storedCurrency);
@@ -42,6 +45,44 @@ const Keyboard = () => {
     });
     return () => unsubscribe();
   }, [navigate]);
+
+  const fetchUserData = async (userId) => {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      setUserCategories(userData.categories || []);
+      setUserPaymentMethods(userData.paymentMethods || []); // Add this line
+      if (categoryId) {
+        const category = userData.categories.find(cat => cat.id === categoryId);
+        setSelectedCategory(category || null);
+      }
+      fetchRecentPaymentMethods(userId, userData.paymentMethods || []);
+    }
+  };
+
+  const fetchRecentPaymentMethods = async (userId, allPaymentMethods) => {
+    const q = query(collection(db, 'expenses'), where('userId', '==', userId), orderBy('date', 'desc'), limit(50));
+    const querySnapshot = await getDocs(q);
+    const recentMethods = querySnapshot.docs.map(doc => doc.data().paymentMethod);
+
+    const methodMap = new Map();
+    recentMethods.forEach(method => {
+      const key = `${method.type}-${method.details.bank || ''}-${method.details.last4 || ''}`;
+      if (!methodMap.has(key)) {
+        methodMap.set(key, method);
+      }
+    });
+
+    allPaymentMethods.forEach(method => {
+      const key = `${method.type}-${method.details.bank || ''}-${method.details.last4 || ''}`;
+      if (!methodMap.has(key)) {
+        methodMap.set(key, method);
+      }
+    });
+
+    setRecentPaymentMethods(Array.from(methodMap.values()));
+  };
 
   useEffect(() => {
     const convertCurrency = async () => {
@@ -60,29 +101,6 @@ const Keyboard = () => {
   }, []);
 
   useEffect(() => {
-    const fetchRecentPaymentMethods = async () => {
-      if (user) {
-        const q = query(collection(db, 'expenses'), orderBy('date', 'desc'), limit(10));
-        const querySnapshot = await getDocs(q);
-        const methods = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            type: data.paymentMethod.type,
-            last4: data.paymentMethod.last4,
-            bank: data.paymentMethod.bank,
-            currency: data.fromCurrency,
-            name: data.paymentMethod.name // Add this line for e-wallet name
-          };
-        });
-        const uniqueMethods = Array.from(new Set(methods.map(JSON.stringify))).map(JSON.parse);
-        setRecentPaymentMethods(uniqueMethods);
-      }
-    };
-    fetchRecentPaymentMethods();
-  }, [user]);
-
-  useEffect(() => {
-    // Update date and time every second
     const timer = setInterval(() => {
       const now = new Date();
       setDate(now.toISOString().split('T')[0]);
@@ -147,7 +165,7 @@ const Keyboard = () => {
         return;
       }
 
-      if (!amount || !date || !time) {
+      if (!amount || !date || !time || !selectedCategory) {
         console.log('Missing required fields');
         alert("Please fill in all required fields");
         return;
@@ -158,14 +176,10 @@ const Keyboard = () => {
 
       const transactionDate = new Date(`${date}T${time}`);
       const transaction = {
+        userId: user.uid,
         amount: parseFloat(amount).toFixed(2),
         convertedAmount,
-        paymentMethod: {
-          type: paymentMethod.type,
-          last4: paymentMethod.last4 || 'N/A',
-          bank: paymentMethod.bank || 'N/A',
-          name: paymentMethod.name || 'N/A'
-        },
+        paymentMethod,
         description,
         receipt: receiptURL,
         productImage: productImageURL,
@@ -210,6 +224,7 @@ const Keyboard = () => {
       showSuccess={showSuccess}
       recentPaymentMethods={recentPaymentMethods}
       selectedCategory={selectedCategory}
+      userCategories={userCategories}
       amountInputRef={amountInputRef}
       handleAmountChange={handleAmountChange}
       handleCurrencyChange={handleCurrencyChange}
@@ -218,11 +233,9 @@ const Keyboard = () => {
       setDescription={setDescription}
       setReceipt={setReceipt}
       setProductImage={setProductImage}
-      paymentTypes={paymentTypes}
-      creditCards={creditCards}
-      debitCards={debitCards}
-      wallets={wallets}
+      setSelectedCategory={setSelectedCategory}
       currencyList={currencyList}
+      userPaymentMethods={userPaymentMethods}
     />
   );
 };

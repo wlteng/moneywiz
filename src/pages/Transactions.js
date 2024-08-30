@@ -15,6 +15,7 @@ const Transactions = () => {
   const [filterMonth, setFilterMonth] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
 
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
@@ -67,6 +68,10 @@ const Transactions = () => {
     setFilterCategory(category);
   };
 
+  const handlePaymentMethodChange = (method) => {
+    setFilterPaymentMethod(method);
+  };
+
   const uniqueMonths = [
     ...new Set(
       transactions.map((transaction) =>
@@ -77,6 +82,15 @@ const Transactions = () => {
 
   const uniqueCurrencies = [...new Set(transactions.map((transaction) => transaction.fromCurrency))];
 
+  const uniquePaymentMethods = [...new Set(transactions.map((transaction) => {
+    const method = transaction.paymentMethod;
+    if (method.type === 'Cash') return 'Cash';
+    if (method.type === 'Credit Card' || method.type === 'Debit Card') {
+      return `${method.type.toLowerCase()}-${method.bank.toLowerCase()}-${method.last4}`;
+    }
+    return method.type;
+  }))];
+
   const filteredTransactions = transactions.filter((transaction) => {
     const transactionDate = new Date(transaction.date);
     const monthMatches = filterMonth
@@ -84,7 +98,12 @@ const Transactions = () => {
       : true;
     const currencyMatches = filterCurrency ? transaction.fromCurrency === filterCurrency : true;
     const categoryMatches = filterCategory ? transaction.categoryId === filterCategory : true;
-    return monthMatches && currencyMatches && categoryMatches;
+    const paymentMethodMatches = filterPaymentMethod 
+      ? (filterPaymentMethod === 'Cash' 
+          ? transaction.paymentMethod.type === 'Cash'
+          : `${transaction.paymentMethod.type.toLowerCase()}-${transaction.paymentMethod.bank.toLowerCase()}-${transaction.paymentMethod.last4}` === filterPaymentMethod)
+      : true;
+    return monthMatches && currencyMatches && categoryMatches && paymentMethodMatches;
   });
 
   const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
@@ -101,13 +120,16 @@ const Transactions = () => {
     groupedTransactions,
     uniqueMonths,
     uniqueCurrencies,
+    uniquePaymentMethods,
     categoryList,
     filterMonth,
     filterCurrency,
     filterCategory,
+    filterPaymentMethod,
     handleMonthChange,
     handleCurrencyChange,
     handleCategoryChange,
+    handlePaymentMethodChange,
     handleShowDescription,
     handleShowPaymentDetails,
     showModal,

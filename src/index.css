@@ -43,3 +43,10 @@ body.modal-open {
 .bm-burger-button {
   z-index: 1001 !important;
 }
+
+@media (max-width: 767px) {
+  .container, .container-fluid {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+}

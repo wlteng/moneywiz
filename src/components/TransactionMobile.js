@@ -9,8 +9,10 @@ const TransactionMobile = ({
   handleMonthChange,
   handleCurrencyChange,
   handleCategoryChange,
+  handlePaymentMethodChange,
   uniqueMonths,
   uniqueCurrencies,
+  uniquePaymentMethods,
   showModal,
   showPaymentModal,
   handleCloseModal,
@@ -49,7 +51,7 @@ const TransactionMobile = ({
   return (
     <div>
       <Row className="mb-3">
-        <Col xs={4}>
+        <Col xs={3} className="mb-2">
           <Dropdown>
             <Dropdown.Toggle variant="outline-secondary" id="dropdown-month" className="w-100">
               Period
@@ -64,7 +66,7 @@ const TransactionMobile = ({
             </Dropdown.Menu>
           </Dropdown>
         </Col>
-        <Col xs={4}>
+        <Col xs={3} className="mb-2">
           <Dropdown>
             <Dropdown.Toggle variant="outline-secondary" id="dropdown-currency" className="w-100">
               Currency
@@ -79,7 +81,7 @@ const TransactionMobile = ({
             </Dropdown.Menu>
           </Dropdown>
         </Col>
-        <Col xs={4}>
+        <Col xs={3} className="mb-2">
           <Dropdown>
             <Dropdown.Toggle variant="outline-secondary" id="dropdown-category" className="w-100">
               Category
@@ -89,6 +91,21 @@ const TransactionMobile = ({
               {categoryList.map((category, index) => (
                 <Dropdown.Item key={index} onClick={() => handleCategoryChange(category.id)}>
                   {category.name}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+        </Col>
+        <Col xs={3} className="mb-2">
+          <Dropdown>
+            <Dropdown.Toggle variant="outline-secondary" id="dropdown-payment" className="w-100">
+              Payment
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => handlePaymentMethodChange('')}>All methods</Dropdown.Item>
+              {uniquePaymentMethods.map((method, index) => (
+                <Dropdown.Item key={index} onClick={() => handlePaymentMethodChange(method)}>
+                  {method}
                 </Dropdown.Item>
               ))}
             </Dropdown.Menu>
@@ -155,7 +172,6 @@ const TransactionMobile = ({
         </div>
       ))}
 
-      {/* Modal for Description */}
       <Modal show={showModal} onHide={handleCloseModal} centered>
         <Modal.Body>{selectedTransaction?.description || 'No description available'}</Modal.Body>
         <Modal.Footer>
@@ -165,7 +181,6 @@ const TransactionMobile = ({
         </Modal.Footer>
       </Modal>
 
-      {/* Modal for Payment Details */}
       <Modal show={showPaymentModal} onHide={handleClosePaymentModal} centered>
         <Modal.Body>
           <h5>Payment Details</h5>
