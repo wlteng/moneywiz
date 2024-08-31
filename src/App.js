@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from './pages/Home';
 import Transactions from './pages/Transactions';
 import SingleTransaction from './pages/SingleTransaction';
+import SingleTransactionEdit from './components/SingleTransactionEdit'; // Import the SingleTransactionEdit component
 import Report from './pages/Report';
 import Profile from './pages/Profile';
 import Keyboard from './pages/Keyboard';
@@ -41,6 +42,7 @@ const App = () => {
         <Route path="/keyboard/:categoryId" element={user ? <Keyboard /> : <Navigate to="/profile" />} />
         <Route path="/transactions" element={user ? <Transactions /> : <Navigate to="/profile" />} />
         <Route path="/transaction/:transactionId" element={user ? <SingleTransaction /> : <Navigate to="/profile" />} />
+        <Route path="/transaction/:transactionId/edit" element={user ? <SingleTransactionEdit /> : <Navigate to="/profile" />} /> {/* Add this line */}
         <Route path="/report" element={user ? <Report /> : <Navigate to="/profile" />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/profile" />} />

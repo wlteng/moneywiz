@@ -7,36 +7,28 @@ import TransactionMobile from '../components/TransactionMobile';
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [userCategories, setUserCategories] = useState([]);
   const [filterMonth, setFilterMonth] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
-  const [userCategories, setUserCategories] = useState([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
   useEffect(() => {
     const fetchTransactions = async () => {
-      try {
-        const user = auth.currentUser;
-        if (user) {
-          const q = query(
-            collection(db, 'expenses'),
-            where('userId', '==', user.uid),
-            orderBy('date', 'desc')
-          );
-          const querySnapshot = await getDocs(q);
-          const fetchedTransactions = [];
-          querySnapshot.forEach((doc) => {
-            fetchedTransactions.push({ id: doc.id, ...doc.data() });
-          });
-          setTransactions(fetchedTransactions);
-        }
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
+      const user = auth.currentUser;
+      if (user) {
+        const q = query(
+          collection(db, 'expenses'),
+          where('userId', '==', user.uid),
+          orderBy('date', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setTransactions(fetchedTransactions);
       }
     };
 
@@ -56,57 +48,47 @@ const Transactions = () => {
     fetchUserCategories();
   }, []);
 
+  const handleMonthChange = (month) => setFilterMonth(month);
+  const handleCurrencyChange = (currency) => setFilterCurrency(currency);
+  const handleCategoryChange = (category) => setFilterCategory(category);
+  const handlePaymentMethodChange = (method) => setFilterPaymentMethod(method);
+
   const handleShowPaymentDetails = (payment) => {
     setSelectedPayment(payment);
     setShowPaymentModal(true);
   };
 
-  const handleClosePaymentModal = () => {
-    setShowPaymentModal(false);
+  const handleClosePaymentModal = () => setShowPaymentModal(false);
+
+  const resetFilters = () => {
+    setFilterMonth('');
+    setFilterCurrency('');
+    setFilterCategory('');
+    setFilterPaymentMethod('');
   };
 
-  const handleMonthChange = (month) => {
-    setFilterMonth(month);
-  };
+  const uniqueMonths = [...new Set(transactions.map(t => 
+    new Date(t.date).toLocaleString('default', { month: 'long', year: 'numeric' })
+  ))];
 
-  const handleCurrencyChange = (currency) => {
-    setFilterCurrency(currency);
-  };
+  const uniqueCurrencies = [...new Set(transactions.map(t => t.fromCurrency))];
 
-  const handleCategoryChange = (category) => {
-    setFilterCategory(category);
-  };
+  const uniquePaymentMethods = [...new Set(transactions.map(t => t.paymentMethod.type))];
 
-  const handlePaymentMethodChange = (method) => {
-    setFilterPaymentMethod(method);
-  };
-
-  const uniqueMonths = [
-    ...new Set(
-      transactions.map((transaction) =>
-        new Date(transaction.date).toLocaleString('default', { month: 'long', year: 'numeric' })
-      )
-    ),
-  ];
-
-  const uniqueCurrencies = [...new Set(transactions.map((transaction) => transaction.fromCurrency))];
-
-  const uniquePaymentMethods = [...new Set(transactions.map((transaction) => transaction.paymentMethod.type))];
-
-  const filteredTransactions = transactions.filter((transaction) => {
+  const filteredTransactions = transactions.filter(transaction => {
     const transactionDate = new Date(transaction.date);
-    const monthMatches = filterMonth
-      ? transactionDate.toLocaleString('default', { month: 'long', year: 'numeric' }) === filterMonth
-      : true;
-    const currencyMatches = filterCurrency ? transaction.fromCurrency === filterCurrency : true;
-    const categoryMatches = filterCategory ? transaction.categoryId === filterCategory : true;
-    const paymentMethodMatches = filterPaymentMethod ? transaction.paymentMethod.type === filterPaymentMethod : true;
-    return monthMatches && currencyMatches && categoryMatches && paymentMethodMatches;
+    const monthYearString = transactionDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    return (
+      (!filterMonth || monthYearString === filterMonth) &&
+      (!filterCurrency || transaction.fromCurrency === filterCurrency) &&
+      (!filterCategory || transaction.categoryId === filterCategory) &&
+      (!filterPaymentMethod || transaction.paymentMethod.type === filterPaymentMethod)
+    );
   });
 
   const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
-    const transactionDate = new Date(transaction.date);
-    const monthYear = transactionDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const monthYear = new Date(transaction.date).toLocaleString('default', { month: 'long', year: 'numeric' });
     if (!acc[monthYear]) {
       acc[monthYear] = [];
     }
@@ -116,9 +98,10 @@ const Transactions = () => {
 
   const commonProps = {
     groupedTransactions,
+    userCategories,
     uniqueMonths,
     uniqueCurrencies,
-    userCategories,
+    uniquePaymentMethods,
     filterMonth,
     filterCurrency,
     filterCategory,
@@ -131,14 +114,10 @@ const Transactions = () => {
     showPaymentModal,
     handleClosePaymentModal,
     selectedPayment,
-    uniquePaymentMethods
+    resetFilters
   };
 
-  return isMobile ? (
-    <TransactionMobile {...commonProps} />
-  ) : (
-    <TransactionsR {...commonProps} />
-  );
+  return isMobile ? <TransactionMobile {...commonProps} /> : <TransactionsR {...commonProps} />;
 };
 
 export default Transactions;
