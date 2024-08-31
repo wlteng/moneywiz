@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const Home = () => {
   const [userCategories, setUserCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserCategories = async () => {
@@ -18,28 +19,46 @@ const Home = () => {
           setUserCategories(userData.categories || []);
         }
       }
+      setLoading(false);
     };
 
-    fetchUserCategories();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchUserCategories();
+      } else {
+        setUserCategories([]);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  if (loading) {
+    return <Container className="mt-4"><h2>Loading...</h2></Container>;
+  }
 
   return (
     <Container className="mt-4">
       <h1 className="text-center">Choose a Category</h1>
-      <Row className="mt-4">
-        {userCategories.map(category => (
-          <Col xs={6} className="mb-3" key={category.id}>
-            <Link to={`/keyboard/${category.id}`} style={{ textDecoration: 'none' }}>
-              <Button 
-                className="w-100" 
-                style={{ backgroundColor: category.color, borderColor: category.color }}
-              >
-                {category.name}
-              </Button>
-            </Link>
-          </Col>
-        ))}
-      </Row>
+      {userCategories.length > 0 ? (
+        <Row className="mt-4">
+          {userCategories.map(category => (
+            <Col xs={6} className="mb-3" key={category.id}>
+              <Link to={`/keyboard/${category.id}`} style={{ textDecoration: 'none' }}>
+                <Button 
+                  className="w-100" 
+                  style={{ backgroundColor: category.color, borderColor: category.color }}
+                >
+                  {category.name}
+                </Button>
+              </Link>
+            </Col>
+          ))}
+        </Row>
+      ) : (
+        <p className="text-center mt-4">No categories found. Please add categories in your profile.</p>
+      )}
     </Container>
   );
 };

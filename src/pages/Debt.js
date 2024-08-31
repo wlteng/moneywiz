@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Button, ListGroup } from 'react-bootstrap';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 import DebtForm from '../components/DebtForm';
 import { FaPlus, FaChartLine } from 'react-icons/fa';
@@ -17,9 +17,13 @@ const Debt = () => {
 
   const fetchDebts = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'debts'));
-      const fetchedDebts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDebts(fetchedDebts);
+      const user = auth.currentUser;
+      if (user) {
+        const q = query(collection(db, 'debts'), where('userId', '==', user.uid));
+        const querySnapshot = await getDocs(q);
+        const fetchedDebts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setDebts(fetchedDebts);
+      }
     } catch (error) {
       console.error("Error fetching debts:", error);
     }
@@ -27,9 +31,12 @@ const Debt = () => {
 
   const handleAddDebt = async (newDebt) => {
     try {
-      await addDoc(collection(db, 'debts'), newDebt);
-      setShowForm(false);
-      fetchDebts();
+      const user = auth.currentUser;
+      if (user) {
+        await addDoc(collection(db, 'debts'), { ...newDebt, userId: user.uid });
+        setShowForm(false);
+        fetchDebts();
+      }
     } catch (error) {
       console.error("Error adding debt:", error);
     }

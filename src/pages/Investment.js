@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Button, Dropdown, Modal, Badge } from 'react-bootstrap';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { Container, Button, Dropdown, Modal, Badge, Alert } from 'react-bootstrap';
+import { collection, getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 import InvestmentForm from '../components/InvestmentForm';
-import { FaChartLine, FaPlus, FaSort, FaFilter, FaDollarSign, FaCalendarAlt, FaCoins, FaChartArea, FaBox, FaPiggyBank, FaQuestionCircle } from 'react-icons/fa';
+import { FaChartLine, FaPlus, FaSort, FaFilter, FaDollarSign, FaCalendarAlt } from 'react-icons/fa';
 
 const Investment = () => {
   const [investments, setInvestments] = useState([]);
@@ -18,18 +18,39 @@ const Investment = () => {
   const navigate = useNavigate();
 
   const fetchInvestments = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const querySnapshot = await getDocs(collection(db, 'investments'));
+      const user = auth.currentUser;
+      if (!user) {
+        console.log("No user logged in");
+        setError("Please log in to view investments.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Fetching investments for user:", user.uid);
+      const q = query(
+        collection(db, 'investments'), 
+        where('userId', '==', user.uid),
+        orderBy('date', 'desc')
+      );
+      
+      console.log("Executing Firestore query");
+      const querySnapshot = await getDocs(q);
+      console.log("Query executed, processing results");
+
       const fetchedInvestments = querySnapshot.docs.map(doc => {
         const data = doc.data();
         const parsedDate = data.date ? new Date(data.date) : null;
-
         return { 
           id: doc.id, 
           ...data,
           date: parsedDate instanceof Date && !isNaN(parsedDate) ? parsedDate : new Date(),
         };
       });
+
+      console.log("Processed investments:", fetchedInvestments.length);
       setInvestments(fetchedInvestments);
       setLoading(false);
     } catch (err) {
@@ -45,12 +66,17 @@ const Investment = () => {
 
   const handleAddInvestment = async (newInvestment) => {
     try {
-      await addDoc(collection(db, 'investments'), newInvestment);
-      setShowForm(false);
-      fetchInvestments();
+      const user = auth.currentUser;
+      if (user) {
+        await addDoc(collection(db, 'investments'), { ...newInvestment, userId: user.uid });
+        setShowForm(false);
+        fetchInvestments();
+      } else {
+        setError("Please log in to add an investment.");
+      }
     } catch (error) {
       console.error("Error adding investment:", error);
-      alert("Failed to add investment. Please try again.");
+      setError("Failed to add investment. Please try again.");
     }
   };
 
@@ -62,21 +88,6 @@ const Investment = () => {
       return <Badge bg="success">Completed +</Badge>;
     }
     return <Badge bg="danger">Completed -</Badge>;
-  };
-
-  const getTypeIcon = (type) => {
-    switch (type.toLowerCase()) {
-      case 'share':
-        return <FaChartArea />;
-      case 'crypto':
-        return <FaCoins />;
-      case 'commodity':
-        return <FaBox />;
-      case 'pension':
-        return <FaPiggyBank />;
-      default:
-        return <FaQuestionCircle />;
-    }
   };
 
   const sortedAndFilteredInvestments = investments
@@ -93,9 +104,6 @@ const Investment = () => {
       }
     });
 
-  if (loading) return <Container><p>Loading investments...</p></Container>;
-  if (error) return <Container><p>{error}</p></Container>;
-
   return (
     <Container>
       <div className="d-flex justify-content-between align-items-center my-4">
@@ -110,90 +118,100 @@ const Investment = () => {
         </div>
       </div>
 
-      <div className="d-flex justify-content-end mb-3">
-        <Dropdown className="me-2">
-          <Dropdown.Toggle variant="outline-secondary">
-            <FaSort />
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => setSortBy('date')}>Date</Dropdown.Item>
-            <Dropdown.Item onClick={() => setSortBy('amount')}>Amount</Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-        <Dropdown className="me-2">
-          <Dropdown.Toggle variant="outline-secondary">
-            <FaDollarSign />
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => setFilterCurrency('')}>All Currencies</Dropdown.Item>
-            {[...new Set(investments.map(inv => inv.currency))].map(currency => (
-              <Dropdown.Item key={currency} onClick={() => setFilterCurrency(currency)}>{currency}</Dropdown.Item>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
-        <Dropdown className="me-2">
-          <Dropdown.Toggle variant="outline-secondary">
-            <FaFilter />
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => setFilterPlatform('')}>All Platforms</Dropdown.Item>
-            {[...new Set(investments.map(inv => inv.platform))].map(platform => (
-              <Dropdown.Item key={platform} onClick={() => setFilterPlatform(platform)}>{platform}</Dropdown.Item>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
-        <Dropdown>
-          <Dropdown.Toggle variant="outline-secondary">
-            <FaCalendarAlt />
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => setFilterType('')}>All Types</Dropdown.Item>
-            {[...new Set(investments.map(inv => inv.type))].map(type => (
-              <Dropdown.Item key={type} onClick={() => setFilterType(type)}>
-                {getTypeIcon(type)} {type}
-              </Dropdown.Item>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
-      </div>
+      {error && <Alert variant="danger">{error}</Alert>}
 
-      <div>
-        {sortedAndFilteredInvestments.map((investment, index) => (
-          <div 
-            key={investment.id} 
-            onClick={() => navigate(`/investments/${investment.id}`)}
-            style={{ 
-              cursor: 'pointer', 
-              padding: '10px', 
-              backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
-            }}
-          >
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <div className="d-flex align-items-center">
-                  <div className="me-3 text-center">
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{investment.date.getDate()}</div>
-                    <div style={{ fontSize: '0.8rem' }}>{investment.date.toLocaleString('default', { month: 'short' })}</div>
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}>
-                      {investment.title}
-                    </h3>
+      {loading ? (
+        <p>Loading investments...</p>
+      ) : (
+        <>
+          <div className="d-flex justify-content-end mb-3">
+            <Dropdown className="me-2">
+              <Dropdown.Toggle variant="outline-secondary">
+                <FaSort /> {sortBy === 'date' ? 'Date' : 'Amount'}
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => setSortBy('date')}>Date</Dropdown.Item>
+                <Dropdown.Item onClick={() => setSortBy('amount')}>Amount</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+            <Dropdown className="me-2">
+              <Dropdown.Toggle variant="outline-secondary">
+                <FaDollarSign /> {filterCurrency || 'All Currencies'}
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => setFilterCurrency('')}>All Currencies</Dropdown.Item>
+                {[...new Set(investments.map(inv => inv.currency))].map(currency => (
+                  <Dropdown.Item key={currency} onClick={() => setFilterCurrency(currency)}>{currency}</Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+            <Dropdown className="me-2">
+              <Dropdown.Toggle variant="outline-secondary">
+                <FaFilter /> {filterPlatform || 'All Platforms'}
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => setFilterPlatform('')}>All Platforms</Dropdown.Item>
+                {[...new Set(investments.map(inv => inv.platform))].map(platform => (
+                  <Dropdown.Item key={platform} onClick={() => setFilterPlatform(platform)}>{platform}</Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+            <Dropdown>
+              <Dropdown.Toggle variant="outline-secondary">
+                <FaCalendarAlt /> {filterType || 'All Types'}
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => setFilterType('')}>All Types</Dropdown.Item>
+                {[...new Set(investments.map(inv => inv.type))].map(type => (
+                  <Dropdown.Item key={type} onClick={() => setFilterType(type)}>{type}</Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
+
+          {sortedAndFilteredInvestments.length > 0 ? (
+            <div>
+              {sortedAndFilteredInvestments.map((investment, index) => (
+                <div 
+                  key={investment.id} 
+                  onClick={() => navigate(`/investments/${investment.id}`)}
+                  style={{ 
+                    cursor: 'pointer', 
+                    padding: '10px', 
+                    backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center">
                     <div>
-                      <span>{investment.platform}</span>
-                      <span className="ms-2">{getStatusBadge(investment)}</span>
+                      <div className="d-flex align-items-center">
+                        <div className="me-3 text-center">
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{investment.date.getDate()}</div>
+                          <div style={{ fontSize: '0.8rem' }}>{investment.date.toLocaleString('default', { month: 'short' })}</div>
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}>
+                            {investment.title}
+                          </h3>
+                          <div>
+                            <span>{investment.platform}</span>
+                            <span className="ms-2">{getStatusBadge(investment)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-end">
+                      <div>{investment.totalAmount.toFixed(2)} <small>{investment.currency}</small></div>
+                      <div>Qty: {investment.quantity} ({(investment.totalAmount / investment.quantity).toFixed(2)})</div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="text-end">
-                <div>{investment.totalAmount.toFixed(2)} <small>{investment.currency}</small></div>
-                <div>Qty: {investment.quantity} ({(investment.totalAmount / investment.quantity).toFixed(2)})</div>
-              </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
+          ) : (
+            <p>No investments found. Add your first investment!</p>
+          )}
+        </>
+      )}
 
       <Modal show={showForm} onHide={() => setShowForm(false)} size="lg">
         <Modal.Header closeButton>

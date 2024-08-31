@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import { investmentTypes, investmentPlatforms, investmentStyles, unitOptions, currencyList } from '../data/General';
 
@@ -13,6 +13,12 @@ const InvestmentForm = ({ onSubmit }) => {
   const [style, setStyle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+
+  useEffect(() => {
+    if (type === 'Share') {
+      setUnit('unit');
+    }
+  }, [type]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -39,25 +45,30 @@ const InvestmentForm = ({ onSubmit }) => {
         <Form.Control type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
       </Form.Group>
 
-      <Form.Group className="mb-3">
-        <Form.Label>Type</Form.Label>
-        <Form.Select value={type} onChange={(e) => setType(e.target.value)} required>
-          <option value="">Select type</option>
-          {investmentTypes.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </Form.Select>
-      </Form.Group>
-
-      <Form.Group className="mb-3">
-        <Form.Label>Investment Platform</Form.Label>
-        <Form.Select value={platform} onChange={(e) => setPlatform(e.target.value)} required>
-          <option value="">Select platform</option>
-          {investmentPlatforms.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </Form.Select>
-      </Form.Group>
+      <Row className="mb-3">
+        <Col>
+          <Form.Group>
+            <Form.Label>Type</Form.Label>
+            <Form.Select value={type} onChange={(e) => setType(e.target.value)} required>
+              <option value="">Select type</option>
+              {investmentTypes.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col>
+          <Form.Group>
+            <Form.Label>Investment Platform</Form.Label>
+            <Form.Select value={platform} onChange={(e) => setPlatform(e.target.value)} required>
+              <option value="">Select platform</option>
+              {investmentPlatforms.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
+      </Row>
 
       <Row className="mb-3">
         <Col>
@@ -84,7 +95,7 @@ const InvestmentForm = ({ onSubmit }) => {
         <Col>
           <Form.Group>
             <Form.Label>Unit</Form.Label>
-            <Form.Select value={unit} onChange={(e) => setUnit(e.target.value)} required>
+            <Form.Select value={unit} onChange={(e) => setUnit(e.target.value)} required disabled={type === 'Share'}>
               <option value="">Select unit</option>
               {unitOptions.map((u) => (
                 <option key={u} value={u}>{u}</option>
@@ -97,7 +108,7 @@ const InvestmentForm = ({ onSubmit }) => {
       <Row className="mb-3">
         <Col>
           <Form.Group>
-            <Form.Label>Total Amount Purchased</Form.Label>
+            <Form.Label>Buying Amount</Form.Label>
             <Form.Control type="number" step="0.01" value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)} required />
           </Form.Group>
         </Col>

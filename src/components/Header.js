@@ -45,6 +45,7 @@ const Header = () => {
         <Link to="/debts" className="bm-item" onClick={() => handleNavigation('/debts')}>Debts</Link>
         <Link to="/report" className="bm-item" onClick={() => handleNavigation('/report')}>Report</Link>
         <Link to="/profile" className="bm-item" onClick={() => handleNavigation('/profile')}>Profile</Link>
+        <Link to="/settings" className="bm-item" onClick={() => handleNavigation('/settings')}>Settings</Link>
       </Menu>
       <div style={logoStyles} onClick={() => navigate('/')}>Your App Name</div>
     </header>
