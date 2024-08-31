@@ -8,7 +8,6 @@ import TransactionMobile from '../components/TransactionMobile';
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [showModal, setShowModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [filterMonth, setFilterMonth] = useState('');
@@ -57,15 +56,6 @@ const Transactions = () => {
     fetchUserCategories();
   }, []);
 
-  const handleShowDescription = (transaction) => {
-    setSelectedTransaction(transaction);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
-
   const handleShowPaymentDetails = (payment) => {
     setSelectedPayment(payment);
     setShowPaymentModal(true);
@@ -101,14 +91,7 @@ const Transactions = () => {
 
   const uniqueCurrencies = [...new Set(transactions.map((transaction) => transaction.fromCurrency))];
 
-  const uniquePaymentMethods = [...new Set(transactions.map((transaction) => {
-    const method = transaction.paymentMethod;
-    if (method.type === 'Cash') return 'Cash';
-    if (method.type === 'Credit Card' || method.type === 'Debit Card') {
-      return `${method.type.toLowerCase()}-${method.details.bank || 'unknown'}-${method.details.last4 || ''}`;
-    }
-    return method.type;
-  }))];
+  const uniquePaymentMethods = [...new Set(transactions.map((transaction) => transaction.paymentMethod.type))];
 
   const filteredTransactions = transactions.filter((transaction) => {
     const transactionDate = new Date(transaction.date);
@@ -117,11 +100,7 @@ const Transactions = () => {
       : true;
     const currencyMatches = filterCurrency ? transaction.fromCurrency === filterCurrency : true;
     const categoryMatches = filterCategory ? transaction.categoryId === filterCategory : true;
-    const paymentMethodMatches = filterPaymentMethod 
-      ? (filterPaymentMethod === 'Cash' 
-          ? transaction.paymentMethod.type === 'Cash'
-          : `${transaction.paymentMethod.type.toLowerCase()}-${transaction.paymentMethod.details.bank || 'unknown'}-${transaction.paymentMethod.details.last4 || ''}` === filterPaymentMethod)
-      : true;
+    const paymentMethodMatches = filterPaymentMethod ? transaction.paymentMethod.type === filterPaymentMethod : true;
     return monthMatches && currencyMatches && categoryMatches && paymentMethodMatches;
   });
 
@@ -134,20 +113,6 @@ const Transactions = () => {
     acc[monthYear].push(transaction);
     return acc;
   }, {});
-
-  const getPaymentMethodBadgeColor = (type) => {
-    switch (type) {
-      case 'E-Wallet':
-        return 'primary';
-      case 'Debit Card':
-        return 'success';
-      case 'Credit Card':
-        return 'danger';
-      case 'Cash':
-      default:
-        return 'secondary';
-    }
-  };
 
   const commonProps = {
     groupedTransactions,
@@ -163,13 +128,9 @@ const Transactions = () => {
     handleCategoryChange,
     handlePaymentMethodChange,
     handleShowPaymentDetails,
-    showModal,
     showPaymentModal,
-    handleCloseModal,
     handleClosePaymentModal,
-    selectedTransaction,
     selectedPayment,
-    getPaymentMethodBadgeColor,
     uniquePaymentMethods
   };
 
