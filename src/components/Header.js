@@ -46,12 +46,12 @@ const Header = () => {
         <Link to="/report" className="bm-item" onClick={() => handleNavigation('/report')}>Report</Link>
         <Link to="/profile" className="bm-item" onClick={() => handleNavigation('/profile')}>Profile</Link>
         <Link to="/settings" className="bm-item" onClick={() => handleNavigation('/settings')}>Settings</Link>
+        <Link to="/initial-setup" className="bm-item" onClick={() => handleNavigation('/initial-setup')}>Initial Setup</Link>
       </Menu>
       <div style={logoStyles} onClick={() => navigate('/')}>Your App Name</div>
     </header>
   );
 };
-
 
 const BurgerIcon = () => (
   <div style={burgerIconStyles}>

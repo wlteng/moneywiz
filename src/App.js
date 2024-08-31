@@ -15,6 +15,7 @@ import Debt from './pages/Debt';
 import DebtDetail from './components/DebtDetail';
 import ReportDebt from './components/ReportDebt';
 import Settings from './pages/Settings';
+import InitialSetup from './components/InitialSetup';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -43,6 +44,7 @@ const App = () => {
         <Route path="/report" element={user ? <Report /> : <Navigate to="/profile" />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/profile" />} />
+        <Route path="/initial-setup" element={user ? <InitialSetup /> : <Navigate to="/profile" />} />
         <Route path="/investments" element={user ? <Investment /> : <Navigate to="/profile" />} />
         <Route path="/investments/:id" element={user ? <InvestmentDetail /> : <Navigate to="/profile" />} />
         <Route path="/report/investments" element={user ? <ReportInvest /> : <Navigate to="/profile" />} />

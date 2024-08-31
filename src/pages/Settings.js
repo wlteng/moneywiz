@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Form, Button, Alert, Modal } from 'react-bootstrap';
 import { auth, db } from '../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 const Settings = () => {
   const [user, setUser] = useState(null);
@@ -12,10 +13,12 @@ const Settings = () => {
     usePasswordForTransactions: false,
     usePasswordForDebts: false,
     usePasswordForInvestments: false,
-    useThumbprint: false,
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -55,6 +58,33 @@ const Settings = () => {
       }
     } catch (err) {
       setError('Failed to save settings');
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (password !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { 
+        featurePassword: password // Note: In a real app, you should hash this password
+      });
+      setSuccess('Password set successfully');
+      setShowPasswordModal(false);
+      setPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setError('Failed to set password');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      setSuccess('Password reset email sent. Please check your inbox.');
+    } catch (err) {
+      setError('Failed to send password reset email');
     }
   };
 
@@ -122,17 +152,40 @@ const Settings = () => {
             onChange={() => handleSettingChange('usePasswordForInvestments')}
           />
         </Form.Group>
-        <Form.Group className="mb-3">
-          <Form.Check 
-            type="switch"
-            id="use-thumbprint"
-            label="Use Thumbprint Authentication"
-            checked={settings.useThumbprint}
-            onChange={() => handleSettingChange('useThumbprint')}
-          />
-        </Form.Group>
-        <Button variant="primary" onClick={saveSettings}>Save Settings</Button>
+        <Button variant="primary" onClick={saveSettings} className="me-2">Save Settings</Button>
+        <Button variant="secondary" onClick={() => setShowPasswordModal(true)} className="me-2">Set Feature Password</Button>
+        <Button variant="link" onClick={handleForgotPassword}>Forgot Password?</Button>
       </Form>
+
+      <Modal show={showPasswordModal} onHide={() => setShowPasswordModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Set Feature Password</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Password</Form.Label>
+            <Form.Control 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Confirm Password</Form.Label>
+            <Form.Control 
+              type="password" 
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm password"
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowPasswordModal(false)}>Close</Button>
+          <Button variant="primary" onClick={handleSetPassword}>Set Password</Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
