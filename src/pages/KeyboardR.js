@@ -1,5 +1,5 @@
-import React from 'react';
-import { Container, Form, Button, InputGroup, DropdownButton, Dropdown, Row, Col, Badge } from 'react-bootstrap';
+import React, { useState, useRef, useEffect } from 'react';
+import { Container, Form, Button, InputGroup, Dropdown, Row, Col } from 'react-bootstrap';
 
 const KeyboardR = ({
   amount,
@@ -10,14 +10,9 @@ const KeyboardR = ({
   productImage,
   fromCurrency,
   toCurrency,
-  date,
-  time,
   showSuccess,
   recentPaymentMethods,
   selectedCategory,
-  userCategories,  // Added this prop
-  setSelectedCategory,  // Added this prop
-   userPaymentMethods, // Add this line
   amountInputRef,
   handleAmountChange,
   handleCurrencyChange,
@@ -26,25 +21,25 @@ const KeyboardR = ({
   setDescription,
   setReceipt,
   setProductImage,
-  currencyList
+  currencyList,
+  userPaymentMethods
 }) => {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const paymentMethodsRef = useRef(null);
+
   const getPaymentMethodTag = (method) => {
-    if (!method || !method.type) {
-      return 'Unknown';
-    }
+    if (!method || !method.type) return 'Unknown';
 
     switch (method.type) {
       case 'Cash':
         return 'Cash';
       case 'Credit Card':
+        return `credit-${method.details.last4}`;
       case 'Debit Card':
-        return method.details && method.details.bank && method.details.last4
-          ? `${method.details.bank}-${method.details.last4}`
-          : `${method.type}`;
+        return `debit-${method.details.last4}`;
       case 'E-Wallet':
-        return method.details && method.details.name
-          ? `${method.type}: ${method.details.name}`
-          : `${method.type}`;
+        return method.details.name;
       default:
         return `${method.type}`;
     }
@@ -64,45 +59,56 @@ const KeyboardR = ({
     }
   };
 
+  // Combine and deduplicate payment methods
+  const uniquePaymentMethods = [
+    { type: 'Cash', details: {} },
+    ...Array.from(new Set([...recentPaymentMethods, ...userPaymentMethods].map(JSON.stringify)))
+      .map(JSON.parse)
+      .filter(method => method.type !== 'Cash')
+  ];
+
   return (
     <Container className="mt-4 pb-5" style={{ maxWidth: '100%' }}>
-      <h2 className="mb-4">
-        {selectedCategory ? selectedCategory.name : 'Select a Category'}
-      </h2>
+      <h2 className="mb-2">{selectedCategory ? selectedCategory.name : 'Select a Category'}</h2>
 
-      <Form.Group className="mb-3">
-        <Form.Label>Category</Form.Label>
-        <Form.Select
-          value={selectedCategory ? selectedCategory.id : ''}
-          onChange={(e) => {
-            const category = userCategories.find(cat => cat.id === e.target.value);
-            setSelectedCategory(category);
-          }}
-        >
-          <option value="">Select a category</option>
-          {userCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </Form.Select>
-      </Form.Group>
+      <div className="mb-3 payment-methods-slider" style={{
+        display: 'flex',
+        overflowX: 'auto',
+        whiteSpace: 'nowrap',
+        padding: '10px 0',
+      }}>
+        {uniquePaymentMethods.map((method, index) => (
+          <Button
+            key={index}
+            variant={getPaymentMethodBadgeColor(method.type)}
+            onClick={() => handlePaymentMethodChange(method)}
+            className="me-2"
+            style={{ flexShrink: 0 }}
+          >
+            {getPaymentMethodTag(method)}
+          </Button>
+        ))}
+      </div>
 
       <Form onSubmit={handleSubmit}>
         <div className="mb-4">
           <InputGroup>
-            <DropdownButton
-              as={InputGroup.Prepend}
-              variant="outline-secondary"
-              title={fromCurrency}
-              id="input-group-dropdown-1"
-            >
-              {currencyList.map((currency) => (
-                <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
-                  {currency.name}
-                </Dropdown.Item>
-              ))}
-            </DropdownButton>
+            <Dropdown>
+              <Dropdown.Toggle 
+                variant="outline-secondary" 
+                id="dropdown-currency"
+                style={{ borderColor: '#ced4da' }}  // Match the border color with the end element
+              >
+                {fromCurrency}
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                {currencyList.map((currency) => (
+                  <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
+                    {currency.name}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
             <Form.Control
               type="text"
               value={amount}
@@ -110,12 +116,9 @@ const KeyboardR = ({
               ref={amountInputRef}
               style={{ zIndex: 1, height: 'auto' }}
             />
-            <Button
-              variant={getPaymentMethodBadgeColor(paymentMethod.type)}
-              disabled
-            >
+            <InputGroup.Text>
               {getPaymentMethodTag(paymentMethod)}
-            </Button>
+            </InputGroup.Text>
           </InputGroup>
           <small>Converted: {convertedAmount || '0.00'} {toCurrency}</small>
         </div>
@@ -124,36 +127,20 @@ const KeyboardR = ({
           <Col xs={6} className="pe-1">
             <Form.Control 
               type="date" 
-              value={date} 
-              readOnly
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
               style={{ height: '38px' }}
             />
           </Col>
           <Col xs={6} className="ps-1">
             <Form.Control 
               type="time" 
-              value={time} 
-              readOnly
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
               style={{ height: '38px' }}
             />
           </Col>
         </Row>
-
-        <div className="mb-4">
-        <Row>
-          {userPaymentMethods.map((method, index) => (
-            <Col key={index} xs={6} className="mb-2">
-              <Button
-                variant={getPaymentMethodBadgeColor(method.type)}
-                onClick={() => handlePaymentMethodChange(method)}
-                className="w-100"
-              >
-                {getPaymentMethodTag(method)}
-              </Button>
-            </Col>
-          ))}
-        </Row>
-      </div>
 
         <div className="mb-4">
           <Form.Group>
