@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
 
 const ReportExp = () => {
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
     const fetchTransactions = async () => {
-      const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
-      const querySnapshot = await getDocs(q);
-      const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTransactions(fetchedTransactions);
+      const user = auth.currentUser;
+      if (user) {
+        const q = query(
+          collection(db, 'expenses'),
+          where("userId", "==", user.uid),
+          orderBy('date', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setTransactions(fetchedTransactions);
+      }
     };
 
     fetchTransactions();
@@ -70,7 +77,6 @@ const ReportExp = () => {
 
   return (
     <Container>
-      
       <Row>
         <Col md={4}>
           <h3>Total by Currency</h3>

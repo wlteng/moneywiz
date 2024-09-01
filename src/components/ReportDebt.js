@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Table, Button } from 'react-bootstrap';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 
 const ReportDebt = () => {
@@ -10,9 +10,13 @@ const ReportDebt = () => {
 
   useEffect(() => {
     const fetchDebts = async () => {
-      const querySnapshot = await getDocs(collection(db, 'debts'));
-      const fetchedDebts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDebts(fetchedDebts);
+      const user = auth.currentUser;
+      if (user) {
+        const q = query(collection(db, 'debts'), where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        const fetchedDebts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setDebts(fetchedDebts);
+      }
     };
 
     fetchDebts();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Badge, Row, Col } from 'react-bootstrap';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 import './ReportInvest.css';
 
@@ -11,18 +11,22 @@ const ReportInvest = () => {
 
   useEffect(() => {
     const fetchInvestments = async () => {
-      const querySnapshot = await getDocs(collection(db, 'investments'));
-      const fetchedInvestments = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const user = auth.currentUser;
+      if (user) {
+        const q = query(collection(db, 'investments'), where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        const fetchedInvestments = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      const groupedInvestments = fetchedInvestments.reduce((acc, inv) => {
-        if (!acc[inv.currency]) {
-          acc[inv.currency] = [];
-        }
-        acc[inv.currency].push(inv);
-        return acc;
-      }, {});
+        const groupedInvestments = fetchedInvestments.reduce((acc, inv) => {
+          if (!acc[inv.currency]) {
+            acc[inv.currency] = [];
+          }
+          acc[inv.currency].push(inv);
+          return acc;
+        }, {});
 
-      setInvestmentsByCurrency(groupedInvestments);
+        setInvestmentsByCurrency(groupedInvestments);
+      }
     };
 
     fetchInvestments();
