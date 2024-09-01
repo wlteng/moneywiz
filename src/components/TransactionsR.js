@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Button, DropdownButton, Dropdown, Badge, Modal } from 'react-bootstrap';
+import { Table, Button, DropdownButton, Dropdown, Badge } from 'react-bootstrap';
 import { FaRedo, FaCalendarAlt, FaMoneyBillWave, FaTags, FaCreditCard, FaFileAlt, FaImage } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { getCurrencyDecimals } from '../data/General';
@@ -18,10 +18,6 @@ const TransactionsR = ({
   handleCurrencyChange,
   handleCategoryChange,
   handlePaymentMethodChange,
-  handleShowPaymentDetails,
-  showPaymentModal,
-  handleClosePaymentModal,
-  selectedPayment,
   resetFilters,
   mainCurrency,
   getMonthlyTotal,
@@ -151,7 +147,7 @@ const TransactionsR = ({
                 <th style={{ width: '120px' }}>Date</th>
                 <th style={{ width: '150px' }}>Category</th>
                 <th style={{ width: '150px' }}>Amount</th>
-                <th style={{ width: '150px' }}>Converted</th>
+                <th style={{ width: '120px' }}>{mainCurrency}</th>
                 <th style={{ width: '160px' }}>Payment Method</th>
                 <th>Description</th>
               </tr>
@@ -162,16 +158,9 @@ const TransactionsR = ({
                   <td>{formatDateTime(transaction.date)}</td>
                   <td>{userCategories.find(c => c.id === transaction.categoryId)?.name}</td>
                   <td>{formatAmount(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency}</td>
-                  <td>{formatAmount(transaction.convertedAmount, mainCurrency)} {mainCurrency}</td>
+                  <td>{formatAmount(transaction.convertedAmount, mainCurrency)}</td>
                   <td>
-                    <Badge
-                      bg={getPaymentMethodBadgeColor(transaction.paymentMethod)}
-                      style={{ cursor: 'pointer' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShowPaymentDetails(transaction.paymentMethod);
-                      }}
-                    >
+                    <Badge bg={getPaymentMethodBadgeColor(transaction.paymentMethod)}>
                       {getPaymentMethodDisplay(transaction.paymentMethod)}
                     </Badge>
                   </td>
@@ -186,34 +175,6 @@ const TransactionsR = ({
           </Table>
         </div>
       ))}
-
-      <Modal show={showPaymentModal} onHide={handleClosePaymentModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Payment Method Details</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedPayment && (
-            <>
-              <p><strong>Type:</strong> {selectedPayment.type}</p>
-              {selectedPayment.type === 'Cash' && (
-                <p><strong>Currency:</strong> {selectedPayment.currency}</p>
-              )}
-              {selectedPayment.type === 'E-Wallet' && (
-                <p><strong>Name:</strong> {selectedPayment.details.name}</p>
-              )}
-              {(selectedPayment.type === 'Credit Card' || selectedPayment.type === 'Debit Card') && (
-                <>
-                  <p><strong>Bank:</strong> {selectedPayment.details.bank}</p>
-                  <p><strong>Last 4 digits:</strong> {selectedPayment.details.last4}</p>
-                  {selectedPayment.type === 'Credit Card' && (
-                    <p><strong>Card Name:</strong> {selectedPayment.details.name}</p>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </Modal.Body>
-      </Modal>
     </div>
   );
 };

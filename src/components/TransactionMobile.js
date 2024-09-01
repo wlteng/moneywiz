@@ -1,7 +1,8 @@
 import React from 'react';
-import { Badge, Dropdown, Button, Modal } from 'react-bootstrap';
+import { Badge, Dropdown, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaMoneyBillWave, FaTags, FaCreditCard, FaRedo, FaFileAlt, FaImage } from 'react-icons/fa';
+import { getCurrencyDecimals } from '../data/General';
 
 const TransactionMobile = ({
   groupedTransactions,
@@ -17,10 +18,6 @@ const TransactionMobile = ({
   handleCurrencyChange,
   handleCategoryChange,
   handlePaymentMethodChange,
-  handleShowPaymentDetails,
-  showPaymentModal,
-  handleClosePaymentModal,
-  selectedPayment,
   resetFilters,
   mainCurrency,
   getMonthlyTotal
@@ -46,6 +43,24 @@ const TransactionMobile = ({
       year: date.getFullYear(),
       time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
     };
+  };
+
+  const formatAmount = (amount, currency) => {
+    const decimals = getCurrencyDecimals(currency);
+    return parseFloat(amount).toFixed(decimals);
+  };
+
+  const getPaymentMethodDisplay = (paymentMethod) => {
+    if (!paymentMethod || !paymentMethod.type) return 'Unknown';
+    const { type, details } = paymentMethod;
+    switch (type.toLowerCase()) {
+      case 'cash': return 'Cash';
+      case 'e-wallet': return details?.name || 'E-Wallet';
+      case 'credit card':
+      case 'debit card':
+        return `${type}: ${details?.last4 || 'XXXX'}`;
+      default: return type;
+    }
   };
 
   return (
@@ -100,94 +115,61 @@ const TransactionMobile = ({
         </Dropdown>
       </div>
 
-      {Object.entries(groupedTransactions).map(([monthYear, transactions]) => (
-        <div key={monthYear}>
-          <h2 className="mt-4 mb-3 ps-3" style={{ fontSize: '1.5rem' }}>
-            {monthYear}
-            <span className="float-end">
-              Total: {getMonthlyTotal(transactions)} {mainCurrency}
-            </span>
-          </h2>
-          {transactions.map((transaction, index) => {
-            const { day, month, time } = formatDate(transaction.date);
-            return (
-              <div 
-                key={transaction.id} 
-                onClick={() => navigate(`/transaction/${transaction.id}`)}
-                style={{ 
-                  cursor: 'pointer', 
-                  padding: '10px', 
-                  backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
-                }}
-              >
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <div className="d-flex align-items-center">
-                      <div className="me-3 text-center">
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{day}</div>
-                        <div style={{ fontSize: '0.8rem' }}>{month}</div>
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}>
-                          {userCategories.find(cat => cat.id === transaction.categoryId)?.name}
-                          {transaction.description && <FaFileAlt className="ms-2" />}
-                          {(transaction.receipt || transaction.productImage) && <FaImage className="ms-2" />}
-                        </h3>
+      {Object.entries(groupedTransactions).map(([monthYear, transactions]) => {
+        const [month, year] = monthYear.split(' ');
+        return (
+          <div key={monthYear}>
+            <h2 className="mt-4 mb-3 ps-3" style={{ fontSize: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>{month.substring(0, 3)} {year}</span>
+              <span>{formatAmount(getMonthlyTotal(transactions), mainCurrency)} {mainCurrency}</span>
+            </h2>
+            {transactions.map((transaction, index) => {
+              const { day, month, time } = formatDate(transaction.date);
+              return (
+                <div 
+                  key={transaction.id} 
+                  onClick={() => navigate(`/transaction/${transaction.id}`)}
+                  style={{ 
+                    cursor: 'pointer', 
+                    padding: '10px', 
+                    backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <div className="d-flex align-items-center">
+                        <div className="me-3 text-center">
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{day}</div>
+                          <div style={{ fontSize: '0.8rem' }}>{month}</div>
+                        </div>
                         <div>
-                          <Badge 
-                            bg={getPaymentMethodBadgeColor(transaction.paymentMethod.type)}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleShowPaymentDetails(transaction.paymentMethod);
-                            }}
-                          >
-                            {transaction.paymentMethod.type}
-                          </Badge>
-                          <small className="text-muted ms-2">
-                            {time}
-                          </small>
+                          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}>
+                            {userCategories.find(cat => cat.id === transaction.categoryId)?.name}
+                            {transaction.description && <FaFileAlt className="ms-2" />}
+                            {(transaction.receipt || transaction.productImage) && <FaImage className="ms-2" />}
+                          </h3>
+                          <div>
+                            <Badge bg={getPaymentMethodBadgeColor(transaction.paymentMethod.type)}>
+                              {getPaymentMethodDisplay(transaction.paymentMethod)}
+                            </Badge>
+                            <small className="text-muted ms-2">
+                              {time}
+                            </small>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-end">
-                    <div>{parseFloat(transaction.amount).toFixed(2)} {transaction.fromCurrency}</div>
-                    <div>{parseFloat(transaction.convertedAmount).toFixed(2)} {mainCurrency}</div>
+                    <div className="text-end">
+                      <div>{formatAmount(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency}</div>
+                      <div>{formatAmount(transaction.convertedAmount, mainCurrency)} {mainCurrency}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-
-      <Modal show={showPaymentModal} onHide={handleClosePaymentModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Payment Method Details</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedPayment && (
-            <>
-              <p><strong>Type:</strong> {selectedPayment.type}</p>
-              {selectedPayment.type === 'Cash' && (
-                <p><strong>Currency:</strong> {selectedPayment.currency}</p>
-              )}
-              {selectedPayment.type === 'E-Wallet' && (
-                <p><strong>Name:</strong> {selectedPayment.details.name}</p>
-              )}
-              {(selectedPayment.type === 'Credit Card' || selectedPayment.type === 'Debit Card') && (
-                <>
-                  <p><strong>Bank:</strong> {selectedPayment.details.bank}</p>
-                  <p><strong>Last 4 digits:</strong> {selectedPayment.details.last4}</p>
-                  {selectedPayment.type === 'Credit Card' && (
-                    <p><strong>Card Name:</strong> {selectedPayment.details.name}</p>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </Modal.Body>
-      </Modal>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 };

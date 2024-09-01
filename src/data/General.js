@@ -68,7 +68,7 @@ export const getCurrencyDecimals = (currencyCode) => {
   return currency ? currency.decimals : 2; // Default to 2 decimal places if not found
 };
 // Define a list of categories for your application
-export const categoryList = [
+export const defaultCategory = [
   { id: 'food', name: 'Food' },
   { id: 'transportation', name: 'Transportation' },
   { id: 'accommodation', name: 'Accommodation' },

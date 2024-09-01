@@ -5,7 +5,7 @@ import { db, storage } from '../services/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Container, Row, Col, Button, Form, Image } from 'react-bootstrap';
 import { FaArrowLeft } from 'react-icons/fa';
-import { categoryList, currencyList, paymentTypes, creditCards, debitCards, wallets } from '../data/General';
+import { currencyList, getConvertedAmount } from '../data/General';
 
 const SingleTransactionEdit = () => {
   const { transactionId } = useParams();
@@ -15,23 +15,69 @@ const SingleTransactionEdit = () => {
   const [newProductImage, setNewProductImage] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [productImagePreview, setProductImagePreview] = useState(null);
+  const [userCategories, setUserCategories] = useState([]);
+  const [userPaymentMethods, setUserPaymentMethods] = useState([]);
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [convertedAmount, setConvertedAmount] = useState('');
 
   useEffect(() => {
     const fetchTransaction = async () => {
-      const docRef = doc(db, 'expenses', transactionId);
-      const docSnap = await getDoc(docRef);
+      try {
+        console.log('Fetching transaction:', transactionId);
+        const docRef = doc(db, 'expenses', transactionId);
+        const docSnap = await getDoc(docRef);
 
-      if (docSnap.exists()) {
-        const data = { id: docSnap.id, ...docSnap.data() };
-        setEditedTransaction(data);
-        setReceiptPreview(data.receipt);
-        setProductImagePreview(data.productImage);
-      } else {
-        console.log("No such document!");
+        if (docSnap.exists()) {
+          const data = { id: docSnap.id, ...docSnap.data() };
+          console.log('Fetched transaction data:', data);
+          setEditedTransaction(data);
+          setReceiptPreview(data.receipt);
+          setProductImagePreview(data.productImage);
+          setConvertedAmount(data.convertedAmount);
+
+          // Set date and time
+          const transactionDate = new Date(data.date);
+          setDate(transactionDate.toISOString().split('T')[0]);
+          setTime(transactionDate.toTimeString().split(' ')[0].slice(0, 5));
+
+          // Fetch user data (categories and payment methods)
+          const userDocRef = doc(db, 'users', data.userId);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            console.log('Fetched user data:', userData);
+            setUserCategories(userData.categories || []);
+            setUserPaymentMethods(userData.paymentMethods || []);
+          } else {
+            console.log('No user data found');
+          }
+        } else {
+          console.log("No such transaction document!");
+        }
+      } catch (error) {
+        console.error("Error fetching transaction:", error);
       }
     };
+
     fetchTransaction();
   }, [transactionId]);
+
+  useEffect(() => {
+    const updateConvertedAmount = async () => {
+      if (editedTransaction && editedTransaction.amount && editedTransaction.fromCurrency && editedTransaction.toCurrency) {
+        const converted = await getConvertedAmount(
+          parseFloat(editedTransaction.amount),
+          editedTransaction.fromCurrency,
+          editedTransaction.toCurrency
+        );
+        setConvertedAmount(converted.toFixed(2));
+        setEditedTransaction(prev => ({ ...prev, convertedAmount: converted.toFixed(2) }));
+      }
+    };
+
+    updateConvertedAmount();
+  }, [editedTransaction?.amount, editedTransaction?.fromCurrency, editedTransaction?.toCurrency]);
 
   const handleImageUpload = async (file, setProgress) => {
     if (!file) return null;
@@ -60,19 +106,30 @@ const SingleTransactionEdit = () => {
 
   const handleEdit = async () => {
     try {
+      console.log('Starting edit process');
       let updatedTransaction = { ...editedTransaction };
+      console.log('Initial updatedTransaction:', updatedTransaction);
+
+      // Combine date and time
+      const combinedDate = new Date(`${date}T${time}`);
+      updatedTransaction.date = combinedDate.toISOString();
+      console.log('Updated date:', updatedTransaction.date);
 
       if (newReceipt) {
         const receiptURL = await handleImageUpload(newReceipt, () => {});
         updatedTransaction.receipt = receiptURL;
+        console.log('Updated receipt URL:', receiptURL);
       }
 
       if (newProductImage) {
         const productImageURL = await handleImageUpload(newProductImage, () => {});
         updatedTransaction.productImage = productImageURL;
+        console.log('Updated product image URL:', productImageURL);
       }
 
+      console.log('Final updatedTransaction before save:', updatedTransaction);
       await updateDoc(doc(db, 'expenses', transactionId), updatedTransaction);
+      console.log('Transaction updated successfully');
       navigate(`/transaction/${transactionId}`);
     } catch (error) {
       console.error("Error updating transaction:", error);
@@ -81,26 +138,60 @@ const SingleTransactionEdit = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Input changed: ${name} = ${value}`);
     setEditedTransaction(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handlePaymentMethodChange = (e) => {
-    const [type, value] = e.target.value.split('|');
-    let paymentMethod = { type };
-
-    if (type === 'Credit Card' || type === 'Debit Card') {
-      const [bank, last4] = value.split('-');
-      paymentMethod = { ...paymentMethod, bank: bank.trim(), last4: last4.trim() };
-    } else if (type === 'E-Wallet') {
-            paymentMethod = { ...paymentMethod, name: value };
-    }
-
+  const handleCategoryChange = (e) => {
+    const categoryId = e.target.value;
+    const category = userCategories.find(cat => cat.id === categoryId);
+    console.log('Category changed:', category);
     setEditedTransaction(prev => ({
       ...prev,
-      paymentMethod
+      categoryId: categoryId,
+      categoryName: category ? category.name : ''
+    }));
+  };
+
+  const getPaymentMethodTag = (method) => {
+    if (!method || !method.type) return 'Unknown';
+
+    switch (method.type) {
+      case 'Cash':
+        return 'Cash';
+      case 'Credit Card':
+        return `Credit Card: ${method.details.bank} (${method.details.last4})`;
+      case 'Debit Card':
+        return `Debit Card: ${method.details.bank} (${method.details.last4})`;
+      case 'E-Wallet':
+        return `E-Wallet: ${method.details.name}`;
+      default:
+        return `${method.type}`;
+    }
+  };
+
+  const getPaymentMethodBadgeColor = (type) => {
+    switch (type) {
+      case 'E-Wallet':
+        return 'primary';
+      case 'Debit Card':
+        return 'success';
+      case 'Credit Card':
+        return 'danger';
+      case 'Cash':
+      default:
+        return 'secondary';
+    }
+  };
+
+  const handlePaymentMethodChange = (method) => {
+    console.log('Payment method changed:', method);
+    setEditedTransaction(prev => ({
+      ...prev,
+      paymentMethod: method
     }));
   };
 
@@ -113,21 +204,22 @@ const SingleTransactionEdit = () => {
         setPreview(reader.result);
       };
       reader.readAsDataURL(file);
+      console.log('File changed:', file.name);
     }
   };
 
-  const getPaymentMethodValue = (method) => {
-    if (method.type === 'Cash') return 'Cash|Cash';
-    if (method.type === 'Credit Card' || method.type === 'Debit Card') {
-      return `${method.type}|${method.bank} - ${method.last4}`;
-    }
-    if (method.type === 'E-Wallet') return `E-Wallet|${method.name}`;
-    return '';
-  };
+  // Combine and deduplicate payment methods
+  const uniquePaymentMethods = [
+    { type: 'Cash', details: {} },
+    ...Array.from(new Set([...userPaymentMethods].map(JSON.stringify)))
+      .map(JSON.parse)
+      .filter(method => method.type !== 'Cash')
+  ];
 
   if (!editedTransaction) {
     return <p>Loading...</p>;
   }
+
 
   return (
     <Container className="mt-4">
@@ -140,24 +232,42 @@ const SingleTransactionEdit = () => {
       </div>
 
       <Form>
-        <Form.Group className="mb-3">
-          <Form.Label>Date</Form.Label>
-          <Form.Control 
-            type="datetime-local" 
-            name="date"
-            value={editedTransaction?.date ? new Date(editedTransaction.date).toISOString().slice(0, 16) : ''}
-            onChange={handleInputChange}
-          />
-        </Form.Group>
+        <Row>
+          <Col>
+            <Form.Group className="mb-3">
+              <Form.Label>Date</Form.Label>
+              <Form.Control 
+                type="date" 
+                value={date}
+                onChange={(e) => {
+                  console.log('Date changed:', e.target.value);
+                  setDate(e.target.value);
+                }}
+              />
+            </Form.Group>
+          </Col>
+          <Col>
+            <Form.Group className="mb-3">
+              <Form.Label>Time</Form.Label>
+              <Form.Control 
+                type="time" 
+                value={time}
+                onChange={(e) => {
+                  console.log('Time changed:', e.target.value);
+                  setTime(e.target.value);
+                }}
+              />
+            </Form.Group>
+          </Col>
+        </Row>
 
         <Form.Group className="mb-3">
           <Form.Label>Category</Form.Label>
           <Form.Select 
-            name="categoryId"
             value={editedTransaction?.categoryId || ''}
-            onChange={handleInputChange}
+            onChange={handleCategoryChange}
           >
-            {categoryList.map(category => (
+            {userCategories.map(category => (
               <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </Form.Select>
@@ -192,28 +302,32 @@ const SingleTransactionEdit = () => {
         </Row>
 
         <Form.Group className="mb-3">
+          <Form.Label>Converted Amount ({editedTransaction.toCurrency})</Form.Label>
+          <Form.Control 
+            type="text" 
+            value={convertedAmount}
+            readOnly
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
           <Form.Label>Payment Method</Form.Label>
-          <Form.Select 
-            value={getPaymentMethodValue(editedTransaction?.paymentMethod)}
-            onChange={handlePaymentMethodChange}
-          >
-            <option value="Cash|Cash">Cash</option>
-            {creditCards.map((card, index) => (
-              <option key={`credit-${index}`} value={`Credit Card|${card.bank} - ${card.last4}`}>
-                Credit Card: {card.bank} - {card.last4}
-              </option>
+          <div className="d-flex overflow-auto mb-2">
+            {uniquePaymentMethods.map((method, index) => (
+              <Button
+                key={index}
+                variant={getPaymentMethodBadgeColor(method.type)}
+                onClick={() => handlePaymentMethodChange(method)}
+                className={`me-2 ${editedTransaction.paymentMethod.type === method.type ? 'active' : ''}`}
+                style={{ flexShrink: 0 }}
+              >
+                {method.type === 'Cash' ? 'Cash' : getPaymentMethodTag(method).split(':')[0]}
+              </Button>
             ))}
-            {debitCards.map((card, index) => (
-              <option key={`debit-${index}`} value={`Debit Card|${card.bank} - ${card.last4}`}>
-                Debit Card: {card.bank} - {card.last4}
-              </option>
-            ))}
-            {wallets.map((wallet, index) => (
-              <option key={`wallet-${index}`} value={`E-Wallet|${wallet.name}`}>
-                E-Wallet: {wallet.name}
-              </option>
-            ))}
-          </Form.Select>
+          </div>
+          <div className="selected-payment-method mt-2 p-2 border rounded">
+            Selected: {getPaymentMethodTag(editedTransaction.paymentMethod)}
+          </div>
         </Form.Group>
 
         <Form.Group className="mb-3">
