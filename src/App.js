@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from './pages/Home';
 import Transactions from './pages/Transactions';
 import SingleTransaction from './pages/SingleTransaction';
-import SingleTransactionEdit from './components/SingleTransactionEdit'; // Import the SingleTransactionEdit component
+import SingleTransactionEdit from './components/SingleTransactionEdit';
 import Report from './pages/Report';
 import Profile from './pages/Profile';
 import Keyboard from './pages/Keyboard';
@@ -34,25 +34,33 @@ const App = () => {
     return <div>Loading...</div>;
   }
 
+  // Custom Route component to handle authentication
+  const ProtectedRoute = ({ children }) => {
+    if (!user) {
+      return <Navigate to="/profile" replace />;
+    }
+    return children;
+  };
+
   return (
     <Router>
       {user && <Header />}
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/keyboard/:categoryId" element={user ? <Keyboard /> : <Navigate to="/profile" />} />
-        <Route path="/transactions" element={user ? <Transactions /> : <Navigate to="/profile" />} />
-        <Route path="/transaction/:transactionId" element={user ? <SingleTransaction /> : <Navigate to="/profile" />} />
-        <Route path="/transaction/:transactionId/edit" element={user ? <SingleTransactionEdit /> : <Navigate to="/profile" />} /> {/* Add this line */}
-        <Route path="/report" element={user ? <Report /> : <Navigate to="/profile" />} />
+        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/keyboard/:categoryId" element={<ProtectedRoute><Keyboard /></ProtectedRoute>} />
+        <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+        <Route path="/transaction/:transactionId" element={<ProtectedRoute><SingleTransaction /></ProtectedRoute>} />
+        <Route path="/transaction/:transactionId/edit" element={<ProtectedRoute><SingleTransactionEdit /></ProtectedRoute>} />
+        <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/settings" element={user ? <Settings /> : <Navigate to="/profile" />} />
-        <Route path="/initial-setup" element={user ? <InitialSetup /> : <Navigate to="/profile" />} />
-        <Route path="/investments" element={user ? <Investment /> : <Navigate to="/profile" />} />
-        <Route path="/investments/:id" element={user ? <InvestmentDetail /> : <Navigate to="/profile" />} />
-        <Route path="/report/investments" element={user ? <ReportInvest /> : <Navigate to="/profile" />} />
-        <Route path="/debts" element={user ? <Debt /> : <Navigate to="/profile" />} />
-        <Route path="/debts/:id" element={user ? <DebtDetail /> : <Navigate to="/profile" />} />
-        <Route path="/report/debts" element={user ? <ReportDebt /> : <Navigate to="/profile" />} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/initial-setup" element={<ProtectedRoute><InitialSetup /></ProtectedRoute>} />
+        <Route path="/investments" element={<ProtectedRoute><Investment /></ProtectedRoute>} />
+        <Route path="/investments/:id" element={<ProtectedRoute><InvestmentDetail /></ProtectedRoute>} />
+        <Route path="/report/investments" element={<ProtectedRoute><ReportInvest /></ProtectedRoute>} />
+        <Route path="/debts" element={<ProtectedRoute><Debt /></ProtectedRoute>} />
+        <Route path="/debts/:id" element={<ProtectedRoute><DebtDetail /></ProtectedRoute>} />
+        <Route path="/report/debts" element={<ProtectedRoute><ReportDebt /></ProtectedRoute>} />
       </Routes>
     </Router>
   );

@@ -23,13 +23,48 @@ const TransactionsR = ({
   selectedPayment,
   resetFilters
 }) => {
-  const getPaymentMethodBadgeColor = (type) => {
+  const getPaymentMethodBadgeColor = (paymentMethod) => {
+    if (!paymentMethod || !paymentMethod.type) {
+      console.warn('Invalid payment method:', paymentMethod);
+      return 'secondary';
+    }
+
+    const type = paymentMethod.type.toLowerCase();
+    switch (type) {
+      case 'e-wallet':
+      case 'ewallet':
+        return 'primary';
+      case 'debit card':
+      case 'debitcard':
+        return 'success';
+      case 'credit card':
+      case 'creditcard':
+        return 'danger';
+      case 'cash':
+        return 'secondary';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getPaymentMethodDisplay = (paymentMethod) => {
+    if (!paymentMethod || !paymentMethod.type) {
+      console.warn('Invalid payment method:', paymentMethod);
+      return 'Unknown';
+    }
+
+    const { type, details } = paymentMethod;
     switch (type.toLowerCase()) {
-      case 'e-wallet': return 'primary';
-      case 'debit card': return 'success';
-      case 'credit card': return 'danger';
-      case 'cash': return 'secondary';
-      default: return 'secondary';
+      case 'cash':
+        return 'Cash';
+      case 'e-wallet':
+      case 'ewallet':
+        return details?.name || 'E-Wallet';
+      case 'credit card':
+      case 'debit card':
+        return `${type}: ${details?.last4 || 'XXXX'}`;
+      default:
+        return type;
     }
   };
 
@@ -112,11 +147,11 @@ const TransactionsR = ({
                   <td>{transaction.convertedAmount} {transaction.toCurrency}</td>
                   <td>
                     <Badge
-                      bg={getPaymentMethodBadgeColor(transaction.paymentMethod.type)}
+                      bg={getPaymentMethodBadgeColor(transaction.paymentMethod)}
                       style={{ cursor: 'pointer' }}
                       onClick={() => handleShowPaymentDetails(transaction.paymentMethod)}
                     >
-                      {transaction.paymentMethod.type}
+                      {getPaymentMethodDisplay(transaction.paymentMethod)}
                     </Badge>
                   </td>
                   <td>

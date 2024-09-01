@@ -13,6 +13,7 @@ const Settings = () => {
     usePasswordForTransactions: false,
     usePasswordForDebts: false,
     usePasswordForInvestments: false,
+    quickInputEnabled: false,  // New setting for quick input
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -150,6 +151,15 @@ const Settings = () => {
             label="Require Password for Investments"
             checked={settings.usePasswordForInvestments}
             onChange={() => handleSettingChange('usePasswordForInvestments')}
+          />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Check 
+            type="switch"
+            id="quick-input"
+            label="Enable Quick Input"
+            checked={settings.quickInputEnabled}
+            onChange={() => handleSettingChange('quickInputEnabled')}
           />
         </Form.Group>
         <Button variant="primary" onClick={saveSettings} className="me-2">Save Settings</Button>
