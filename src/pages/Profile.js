@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../services/firebase';
-import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { 
+  GoogleAuthProvider, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  updateProfile,
+  signInWithRedirect,
+  getRedirectResult
+} from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Container, Form, Button, Alert } from 'react-bootstrap';
 
@@ -23,6 +31,24 @@ const Profile = () => {
         setDisplayName('');
       }
     });
+
+    // Handle the redirect result
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          // User signed in with redirect
+          await setDoc(doc(db, 'users', result.user.uid), {
+            email: result.user.email,
+            displayName: result.user.displayName,
+            createdAt: new Date()
+          }, { merge: true });
+          setSuccess('Logged in with Google successfully');
+        }
+      })
+      .catch((error) => {
+        setError(error.message);
+      });
+
     return () => unsubscribe();
   }, []);
 
@@ -53,28 +79,22 @@ const Profile = () => {
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
-        await signOut(auth);  // Ensure the user is logged out first
-        const result = await signInWithPopup(auth, provider);
-        await setDoc(doc(db, 'users', result.user.uid), {
-            email: result.user.email,
-            displayName: result.user.displayName,
-            createdAt: new Date()
-        }, { merge: true });
-        setSuccess('Logged in with Google successfully');
+      await signInWithRedirect(auth, provider);
+      // The result will be handled in the useEffect hook
     } catch (error) {
-        setError(error.message);
+      setError(error.message);
     }
-};
+  };
 
- const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
-        await signOut(auth);
-        setSuccess('Logged out successfully');
-        setUser(null); // Clear the user state
+      await signOut(auth);
+      setSuccess('Logged out successfully');
+      setUser(null);
     } catch (error) {
-        setError(error.message);
+      setError(error.message);
     }
-};
+  };
 
   const handleUpdateProfile = async () => {
     try {
@@ -85,6 +105,7 @@ const Profile = () => {
       setError(error.message);
     }
   };
+
 
   return (
     <Container className="mt-4">
