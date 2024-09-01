@@ -98,16 +98,6 @@ const Keyboard = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setDate(now.toISOString().split('T')[0]);
-      setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
   const handleAmountChange = (e) => {
     const value = e.target.value;
     if (!isNaN(value) && value.match(/^\d*\.?\d{0,2}$/)) {
@@ -231,7 +221,8 @@ const Keyboard = () => {
       setDescription={setDescription}
       setReceipt={setReceipt}
       setProductImage={setProductImage}
-      setSelectedCategory={setSelectedCategory}
+      setDate={setDate}
+      setTime={setTime}
       currencyList={currencyList}
       userPaymentMethods={userPaymentMethods}
     />

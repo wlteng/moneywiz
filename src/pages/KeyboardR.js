@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Container, Form, Button, InputGroup, Dropdown, Row, Col } from 'react-bootstrap';
 
 const KeyboardR = ({
@@ -10,6 +10,8 @@ const KeyboardR = ({
   productImage,
   fromCurrency,
   toCurrency,
+  date,
+  time,
   showSuccess,
   recentPaymentMethods,
   selectedCategory,
@@ -21,11 +23,11 @@ const KeyboardR = ({
   setDescription,
   setReceipt,
   setProductImage,
+  setDate,
+  setTime,
   currencyList,
   userPaymentMethods
 }) => {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const paymentMethodsRef = useRef(null);
 
   const getPaymentMethodTag = (method) => {
@@ -97,7 +99,7 @@ const KeyboardR = ({
               <Dropdown.Toggle 
                 variant="outline-secondary" 
                 id="dropdown-currency"
-                style={{ borderColor: '#ced4da' }}  // Match the border color with the end element
+                style={{ borderColor: '#ced4da' }}
               >
                 {fromCurrency}
               </Dropdown.Toggle>
