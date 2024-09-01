@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Form, Button, InputGroup, Dropdown, Row, Col } from 'react-bootstrap';
 import { getConvertedAmount, currencyList } from '../data/General';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../services/firebase';
-import { auth } from '../services/firebase';
+import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
 
 const HomeInput = ({
   userCategories,
@@ -13,7 +12,7 @@ const HomeInput = ({
   const [amounts, setAmounts] = useState({});  
   const [paymentMethod, setPaymentMethod] = useState({ type: 'Cash', details: {} });
   const [fromCurrency, setFromCurrency] = useState(localStorage.getItem('lastChosenCurrency') || 'SGD');
-  const [toCurrency] = useState(localStorage.getItem('mainCurrency') || 'MYR');
+  const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'MYR');
   const [showSuccess, setShowSuccess] = useState(false);
   const [user, setUser] = useState(null);
 
@@ -21,10 +20,21 @@ const HomeInput = ({
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
+        fetchUserMainCurrency(user.uid);
       }
     });
     return () => unsubscribe();
   }, []);
+
+  const fetchUserMainCurrency = async (userId) => {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      setMainCurrency(userData.mainCurrency || 'MYR');
+      localStorage.setItem('mainCurrency', userData.mainCurrency || 'MYR');
+    }
+  };
 
   const handleAmountChange = (categoryId, value) => {
     if (!isNaN(value) && value.match(/^\d*\.?\d{0,2}$/)) {
@@ -54,7 +64,7 @@ const HomeInput = ({
     const amount = parseFloat(amounts[categoryId]);
     if (isNaN(amount)) return;
 
-    const convertedAmount = getConvertedAmount(amount, fromCurrency, toCurrency).toFixed(2);
+    const convertedAmount = getConvertedAmount(amount, fromCurrency, mainCurrency).toFixed(2);
     const now = new Date();
 
     const transaction = {
@@ -67,7 +77,7 @@ const HomeInput = ({
       productImage: null,
       date: now.toISOString(),
       fromCurrency,
-      toCurrency,
+      toCurrency: mainCurrency,
       categoryId,
       categoryName,
     };
@@ -189,7 +199,7 @@ const HomeInput = ({
             </InputGroup>
             {amounts[category.id] && (
               <small className="text-muted">
-                Converted: {getConvertedAmount(parseFloat(amounts[category.id]), fromCurrency, toCurrency).toFixed(2)} {toCurrency}
+                Converted: {getConvertedAmount(parseFloat(amounts[category.id]), fromCurrency, mainCurrency).toFixed(2)} {mainCurrency}
               </small>
             )}
           </Col>

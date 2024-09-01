@@ -17,7 +17,7 @@ const Keyboard = () => {
   const [receipt, setReceipt] = useState(null);
   const [productImage, setProductImage] = useState(null);
   const [fromCurrency, setFromCurrency] = useState(localStorage.getItem('lastChosenCurrency') || currencyList[0].code);
-  const [toCurrency, setToCurrency] = useState(localStorage.getItem('mainCurrency') || 'USD');
+  const [toCurrency, setToCurrency] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const [showSuccess, setShowSuccess] = useState(false);
@@ -35,10 +35,6 @@ const Keyboard = () => {
       if (user) {
         setUser(user);
         fetchUserData(user.uid);
-        const storedCurrency = localStorage.getItem('mainCurrency');
-        if (storedCurrency) {
-          setToCurrency(storedCurrency);
-        }
       } else {
         navigate('/profile');
       }
@@ -52,7 +48,9 @@ const Keyboard = () => {
     if (userSnap.exists()) {
       const userData = userSnap.data();
       setUserCategories(userData.categories || []);
-      setUserPaymentMethods(userData.paymentMethods || []); // Add this line
+      setUserPaymentMethods(userData.paymentMethods || []);
+      setToCurrency(userData.mainCurrency || 'MYR');
+      localStorage.setItem('mainCurrency', userData.mainCurrency || 'MYR');
       if (categoryId) {
         const category = userData.categories.find(cat => cat.id === categoryId);
         setSelectedCategory(category || null);
@@ -86,7 +84,7 @@ const Keyboard = () => {
 
   useEffect(() => {
     const convertCurrency = async () => {
-      if (amount) {
+      if (amount && toCurrency) {
         const converted = await getConvertedAmount(parseFloat(amount), fromCurrency, toCurrency);
         setConvertedAmount(converted.toFixed(2));
       }
