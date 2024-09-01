@@ -246,7 +246,7 @@ const InitialSetup = () => {
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
               <div>
                 <Badge bg={getPaymentMethodBadgeColor(method.type)}>{method.type}</Badge> - 
-                {method.details.last4 ? ` ${method.details.last4} - ${method.details.bank} - ${method.details.name}` : ` ${method.details.name}`}
+                {method.details.last4 ? ` ${method.details.last4} - ${method.details.bank}` : ` ${method.details.name}`}
               </div>
               <div>
                 <Button variant="light" size="sm" onClick={() => handleEditPaymentMethod(index)} className="me-2">Edit</Button>

@@ -53,26 +53,28 @@ const Profile = () => {
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      await setDoc(doc(db, 'users', result.user.uid), {
-        email: result.user.email,
-        displayName: result.user.displayName,
-        createdAt: new Date()
-      }, { merge: true });
-      setSuccess('Logged in with Google successfully');
+        await signOut(auth);  // Ensure the user is logged out first
+        const result = await signInWithPopup(auth, provider);
+        await setDoc(doc(db, 'users', result.user.uid), {
+            email: result.user.email,
+            displayName: result.user.displayName,
+            createdAt: new Date()
+        }, { merge: true });
+        setSuccess('Logged in with Google successfully');
     } catch (error) {
-      setError(error.message);
+        setError(error.message);
     }
-  };
+};
 
-  const handleLogout = async () => {
+ const handleLogout = async () => {
     try {
-      await signOut(auth);
-      setSuccess('Logged out successfully');
+        await signOut(auth);
+        setSuccess('Logged out successfully');
+        setUser(null); // Clear the user state
     } catch (error) {
-      setError(error.message);
+        setError(error.message);
     }
-  };
+};
 
   const handleUpdateProfile = async () => {
     try {

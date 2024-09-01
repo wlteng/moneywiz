@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Form, Button, Alert, Modal } from 'react-bootstrap';
 import { auth, db } from '../services/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { sendPasswordResetEmail } from 'firebase/auth';
 
 const Settings = () => {
@@ -13,7 +13,7 @@ const Settings = () => {
     usePasswordForTransactions: false,
     usePasswordForDebts: false,
     usePasswordForInvestments: false,
-    quickInputEnabled: false,  // New setting for quick input
+    quickInputEnabled: false,
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -40,8 +40,12 @@ const Settings = () => {
       if (userSnap.exists()) {
         const userData = userSnap.data();
         setSettings(userData.settings || settings);
+      } else {
+        // If the user document doesn't exist, create it with default settings
+        await setDoc(userRef, { settings });
       }
     } catch (err) {
+      console.error('Failed to fetch user settings:', err);
       setError('Failed to fetch user settings');
     }
   };
@@ -53,11 +57,13 @@ const Settings = () => {
   const saveSettings = async () => {
     try {
       if (user) {
-        await updateDoc(doc(db, 'users', user.uid), { settings });
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, { settings });
         setSuccess('Settings saved successfully');
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
+      console.error('Failed to save settings:', err);
       setError('Failed to save settings');
     }
   };
@@ -68,23 +74,32 @@ const Settings = () => {
       return;
     }
     try {
-      await updateDoc(doc(db, 'users', user.uid), { 
-        featurePassword: password // Note: In a real app, you should hash this password
-      });
-      setSuccess('Password set successfully');
-      setShowPasswordModal(false);
-      setPassword('');
-      setConfirmPassword('');
+      if (user) {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, { 
+          featurePassword: password // Note: In a real app, you should hash this password
+        });
+        setSuccess('Password set successfully');
+        setShowPasswordModal(false);
+        setPassword('');
+        setConfirmPassword('');
+      }
     } catch (err) {
+      console.error('Failed to set password:', err);
       setError('Failed to set password');
     }
   };
 
   const handleForgotPassword = async () => {
     try {
-      await sendPasswordResetEmail(auth, user.email);
-      setSuccess('Password reset email sent. Please check your inbox.');
+      if (user && user.email) {
+        await sendPasswordResetEmail(auth, user.email);
+        setSuccess('Password reset email sent. Please check your inbox.');
+      } else {
+        setError('No email associated with this account');
+      }
     } catch (err) {
+      console.error('Failed to send password reset email:', err);
       setError('Failed to send password reset email');
     }
   };
