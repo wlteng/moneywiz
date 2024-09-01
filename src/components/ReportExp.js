@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Alert, Form } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 
 const ReportExp = () => {
   const [transactions, setTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState('');
   const mainCurrency = localStorage.getItem('mainCurrency') || 'USD';
 
   useEffect(() => {
@@ -20,14 +22,36 @@ const ReportExp = () => {
         const querySnapshot = await getDocs(q);
         const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setTransactions(fetchedTransactions);
+        setFilteredTransactions(fetchedTransactions);
       }
     };
 
     fetchTransactions();
   }, []);
 
+  useEffect(() => {
+    if (selectedMonth) {
+      const filtered = transactions.filter(transaction => {
+        const transactionDate = new Date(transaction.date);
+        return transactionDate.getFullYear() === parseInt(selectedMonth.split('-')[0]) &&
+               transactionDate.getMonth() === parseInt(selectedMonth.split('-')[1]) - 1;
+      });
+      setFilteredTransactions(filtered);
+    } else {
+      setFilteredTransactions(transactions);
+    }
+  }, [selectedMonth, transactions]);
+
+  const getMonthOptions = () => {
+    const months = [...new Set(transactions.map(transaction => {
+      const date = new Date(transaction.date);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }))];
+    return months.sort((a, b) => b.localeCompare(a));
+  };
+
   const getTotalByCurrency = () => {
-    const totals = transactions.reduce((acc, transaction) => {
+    const totals = filteredTransactions.reduce((acc, transaction) => {
       const currency = transaction.fromCurrency;
       if (!acc[currency]) {
         acc[currency] = 0;
@@ -45,7 +69,7 @@ const ReportExp = () => {
   };
 
   const getTotalByCategory = () => {
-    const totals = transactions.reduce((acc, transaction) => {
+    const totals = filteredTransactions.reduce((acc, transaction) => {
       const category = transaction.categoryName;
       if (!acc[category]) {
         acc[category] = 0;
@@ -62,29 +86,41 @@ const ReportExp = () => {
     ));
   };
 
-  const getTotalByMonth = () => {
-    const totals = transactions.reduce((acc, transaction) => {
-      const date = new Date(transaction.date);
-      const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      if (!acc[monthYear]) {
-        acc[monthYear] = 0;
+  const getTotalByPaymentMethod = () => {
+    const totals = filteredTransactions.reduce((acc, transaction) => {
+      const method = transaction.paymentMethod.type;
+      if (!acc[method]) {
+        acc[method] = 0;
       }
-      acc[monthYear] += parseFloat(transaction.convertedAmount);
+      acc[method] += parseFloat(transaction.convertedAmount);
       return acc;
     }, {});
 
     const alertVariants = ['info', 'success', 'warning', 'danger', 'primary'];
-    return Object.entries(totals)
-      .sort((a, b) => b[0].localeCompare(a[0]))
-      .map(([monthYear, amount], index) => (
-        <Alert key={monthYear} variant={alertVariants[index % alertVariants.length]} className="mb-2">
-          <strong>{monthYear}:</strong> {amount.toFixed(2)} {mainCurrency}
-        </Alert>
-      ));
+    return Object.entries(totals).map(([method, amount], index) => (
+      <Alert key={method} variant={alertVariants[index % alertVariants.length]} className="mb-2">
+        <strong>{method}:</strong> {amount.toFixed(2)} {mainCurrency}
+      </Alert>
+    ));
+  };
+
+  const getTotalPayment = () => {
+    const total = filteredTransactions.reduce((acc, transaction) => {
+      return acc + parseFloat(transaction.convertedAmount);
+    }, 0);
+
+    const date = selectedMonth ? new Date(selectedMonth) : new Date();
+    const monthYear = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+
+    return (
+      <Alert variant="info" className="mb-2">
+        <strong>{monthYear}:</strong> {total.toFixed(2)} {mainCurrency}
+      </Alert>
+    );
   };
 
   const getChartData = () => {
-    const dailyTotals = transactions.reduce((acc, transaction) => {
+    const dailyTotals = filteredTransactions.reduce((acc, transaction) => {
       const date = new Date(transaction.date).toISOString().split('T')[0];
       if (!acc[date]) {
         acc[date] = 0;
@@ -102,6 +138,30 @@ const ReportExp = () => {
 
   return (
     <Container className="mt-4">
+      <Row className="mb-3">
+        <Col>
+          <Form.Group>
+            <Form.Label>Select Month:</Form.Label>
+            <Form.Control 
+              as="select" 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              <option value="">All Months</option>
+              {getMonthOptions().map(month => (
+                <option key={month} value={month}>
+                  {new Date(month).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </option>
+              ))}
+            </Form.Control>
+          </Form.Group>
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {getTotalPayment()}
+        </Col>
+      </Row>
       <Row>
         <Col md={4}>
           <h3>Total by Currency</h3>
@@ -112,8 +172,8 @@ const ReportExp = () => {
           {getTotalByCategory()}
         </Col>
         <Col md={4}>
-          <h3>Total by Month</h3>
-          {getTotalByMonth()}
+          <h3>Total by Payment Method</h3>
+          {getTotalByPaymentMethod()}
         </Col>
       </Row>
       <Row className="mt-4">
