@@ -21,7 +21,9 @@ const TransactionsR = ({
   showPaymentModal,
   handleClosePaymentModal,
   selectedPayment,
-  resetFilters
+  resetFilters,
+  mainCurrency,
+  getMonthlyTotal,
 }) => {
   const getPaymentMethodBadgeColor = (paymentMethod) => {
     if (!paymentMethod || !paymentMethod.type) {
@@ -66,10 +68,6 @@ const TransactionsR = ({
       default:
         return type;
     }
-  };
-
-  const getMonthlyTotal = (transactions) => {
-    return transactions.reduce((total, t) => total + parseFloat(t.convertedAmount), 0).toFixed(2);
   };
 
   const formatDateTime = (dateString) => {
@@ -130,7 +128,7 @@ const TransactionsR = ({
 
       {Object.entries(groupedTransactions).map(([monthYear, transactions]) => (
         <div key={monthYear}>
-          <h3>{monthYear} - Total: {getMonthlyTotal(transactions)} {localStorage.getItem('mainCurrency')}</h3>
+          <h3>{monthYear} - Total: {getMonthlyTotal(transactions)} {mainCurrency}</h3>
           <Table striped bordered hover>
             <thead>
               <tr>
@@ -152,7 +150,7 @@ const TransactionsR = ({
                     {(transaction.receipt || transaction.productImage) && <FaImage className="ms-2" />}
                   </td>
                   <td>{transaction.amount} {transaction.fromCurrency}</td>
-                  <td>{transaction.convertedAmount} {transaction.toCurrency}</td>
+                  <td>{parseFloat(transaction.convertedAmount).toFixed(2)} {mainCurrency}</td>
                   <td>
                     <Badge
                       bg={getPaymentMethodBadgeColor(transaction.paymentMethod)}

@@ -7,9 +7,16 @@ const conversionRates = {
   GBP: 0.18, // 1 MYR = 0.18 GBP
   SGD: 0.31, // 1 MYR = 0.31 SGD
   AUD: 0.34, // 1 MYR = 0.34 AUD
-  // Add more currencies as needed
+  RMB: 1.52, // 1 MYR = 1.52 RMB (Chinese Yuan)
+  THB: 7.10, // 1 MYR = 7.10 THB (Thai Baht)
+  IDR: 3340.00, // 1 MYR = 3340.00 IDR (Indonesian Rupiah)
+  PHP: 12.00, // 1 MYR = 12.00 PHP (Philippine Peso)
+  VND: 5100.00, // 1 MYR = 5100.00 VND (Vietnamese Dong)
+  BND: 0.31, // 1 MYR = 0.31 BND (Brunei Dollar)
+  KHR: 900.00, // 1 MYR = 900.00 KHR (Cambodian Riel)
+  HKD: 1.72, // 1 MYR = 1.72 HKD (Hong Kong Dollar)
+  MOP: 1.76, // 1 MYR = 1.76 MOP (Macanese Pataca)
 };
-
 export const getConvertedAmount = (amount, fromCurrency, toCurrency) => {
   try {
     console.log(`Converting ${amount} ${fromCurrency} to ${toCurrency}`);

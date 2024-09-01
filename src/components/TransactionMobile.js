@@ -21,7 +21,9 @@ const TransactionMobile = ({
   showPaymentModal,
   handleClosePaymentModal,
   selectedPayment,
-  resetFilters
+  resetFilters,
+  mainCurrency,
+  getMonthlyTotal
 }) => {
   const navigate = useNavigate();
 
@@ -41,12 +43,9 @@ const TransactionMobile = ({
     return {
       day: date.getDate(),
       month: date.toLocaleString('default', { month: 'short' }),
-      year: date.getFullYear()
+      year: date.getFullYear(),
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
     };
-  };
-
-  const getMonthlyTotal = (transactions) => {
-    return transactions.reduce((total, t) => total + parseFloat(t.convertedAmount), 0).toFixed(2);
   };
 
   return (
@@ -106,11 +105,11 @@ const TransactionMobile = ({
           <h2 className="mt-4 mb-3 ps-3" style={{ fontSize: '1.5rem' }}>
             {monthYear}
             <span className="float-end">
-              Total: {getMonthlyTotal(transactions)} {localStorage.getItem('mainCurrency')}
+              Total: {getMonthlyTotal(transactions)} {mainCurrency}
             </span>
           </h2>
           {transactions.map((transaction, index) => {
-            const { day, month } = formatDate(transaction.date);
+            const { day, month, time } = formatDate(transaction.date);
             return (
               <div 
                 key={transaction.id} 
@@ -145,7 +144,7 @@ const TransactionMobile = ({
                             {transaction.paymentMethod.type}
                           </Badge>
                           <small className="text-muted ms-2">
-                            {new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {time}
                           </small>
                         </div>
                       </div>
@@ -153,7 +152,7 @@ const TransactionMobile = ({
                   </div>
                   <div className="text-end">
                     <div>{parseFloat(transaction.amount).toFixed(2)} {transaction.fromCurrency}</div>
-                    <div>{parseFloat(transaction.convertedAmount).toFixed(2)} {transaction.toCurrency}</div>
+                    <div>{parseFloat(transaction.convertedAmount).toFixed(2)} {mainCurrency}</div>
                   </div>
                 </div>
               </div>

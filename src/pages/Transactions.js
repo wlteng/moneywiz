@@ -4,6 +4,7 @@ import { db, auth } from '../services/firebase';
 import { collection, getDocs, query, orderBy, where, doc, getDoc } from 'firebase/firestore';
 import TransactionsR from '../components/TransactionsR';
 import TransactionMobile from '../components/TransactionMobile';
+import { getConvertedAmount } from '../data/General'; // Ensure this function is updated to handle all currency conversions
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -14,6 +15,7 @@ const Transactions = () => {
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'USD');
 
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
@@ -27,7 +29,14 @@ const Transactions = () => {
           orderBy('date', 'desc')
         );
         const querySnapshot = await getDocs(q);
-        const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const fetchedTransactions = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            convertedAmount: getConvertedAmount(parseFloat(data.amount), data.fromCurrency, mainCurrency)
+          };
+        });
         setTransactions(fetchedTransactions);
       }
     };
@@ -40,13 +49,14 @@ const Transactions = () => {
         if (userSnap.exists()) {
           const userData = userSnap.data();
           setUserCategories(userData.categories || []);
+          setMainCurrency(userData.mainCurrency || 'USD');
         }
       }
     };
 
-    fetchTransactions();
     fetchUserCategories();
-  }, []);
+    fetchTransactions();
+  }, [mainCurrency]);
 
   const handleMonthChange = (month) => setFilterMonth(month);
   const handleCurrencyChange = (currency) => setFilterCurrency(currency);
@@ -96,6 +106,10 @@ const Transactions = () => {
     return acc;
   }, {});
 
+  const getMonthlyTotal = (transactions) => {
+    return transactions.reduce((total, t) => total + parseFloat(t.convertedAmount), 0).toFixed(2);
+  };
+
   const commonProps = {
     groupedTransactions,
     userCategories,
@@ -114,7 +128,9 @@ const Transactions = () => {
     showPaymentModal,
     handleClosePaymentModal,
     selectedPayment,
-    resetFilters
+    resetFilters,
+    mainCurrency,
+    getMonthlyTotal
   };
 
   return isMobile ? <TransactionMobile {...commonProps} /> : <TransactionsR {...commonProps} />;
