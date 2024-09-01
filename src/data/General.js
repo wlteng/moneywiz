@@ -46,22 +46,27 @@ export const getConvertedAmount = (amount, fromCurrency, toCurrency) => {
 
 // Define a list of currencies for dropdowns or other uses
 export const currencyList = [
-  { code: 'MYR', name: 'Malaysian Ringgit' },
-  { code: 'USD', name: 'US Dollar' },
-  { code: 'EUR', name: 'Euro' },
-  { code: 'GBP', name: 'British Pound' },
-  { code: 'SGD', name: 'Singapore Dollar' },
-  { code: 'AUD', name: 'Australian Dollar' },
-  { code: 'RMB', name: 'Chinese Yuan' },
-  { code: 'THB', name: 'Thai Baht' },          // Thailand
-  { code: 'IDR', name: 'Indonesian Rupiah' },  // Indonesia
-  { code: 'PHP', name: 'Philippine Peso' },    // Philippines
-  { code: 'VND', name: 'Vietnamese Dong' },    // Vietnam
-  { code: 'BND', name: 'Brunei Dollar' },      // Brunei
-  { code: 'KHR', name: 'Cambodian Riel' },     // Cambodia
-  { code: 'HKD', name: 'Hong Kong Dollar' },   // Hong Kong
-  { code: 'MOP', name: 'Macanese Pataca' },    // Macao
+  { code: 'MYR', name: 'Malaysian Ringgit', decimals: 2 },
+  { code: 'USD', name: 'US Dollar', decimals: 2 },
+  { code: 'EUR', name: 'Euro', decimals: 2 },
+  { code: 'GBP', name: 'British Pound', decimals: 2 },
+  { code: 'SGD', name: 'Singapore Dollar', decimals: 2 },
+  { code: 'AUD', name: 'Australian Dollar', decimals: 2 },
+  { code: 'RMB', name: 'Chinese Yuan', decimals: 2 },
+  { code: 'THB', name: 'Thai Baht', decimals: 0 },
+  { code: 'IDR', name: 'Indonesian Rupiah', decimals: 0 },
+  { code: 'PHP', name: 'Philippine Peso', decimals: 0 },
+  { code: 'VND', name: 'Vietnamese Dong', decimals: 0 },
+  { code: 'BND', name: 'Brunei Dollar', decimals: 2 },
+  { code: 'KHR', name: 'Cambodian Riel', decimals: 0 },
+  { code: 'HKD', name: 'Hong Kong Dollar', decimals: 2 },
+  { code: 'MOP', name: 'Macanese Pataca', decimals: 2 },
 ];
+
+export const getCurrencyDecimals = (currencyCode) => {
+  const currency = currencyList.find(c => c.code === currencyCode);
+  return currency ? currency.decimals : 2; // Default to 2 decimal places if not found
+};
 // Define a list of categories for your application
 export const categoryList = [
   { id: 'food', name: 'Food' },
@@ -141,3 +146,4 @@ export const unitOptions = [
   'unit',
   // Add more units as needed
 ];
+

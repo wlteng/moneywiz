@@ -1,7 +1,8 @@
 import React from 'react';
 import { Table, Button, DropdownButton, Dropdown, Badge, Modal } from 'react-bootstrap';
 import { FaRedo, FaCalendarAlt, FaMoneyBillWave, FaTags, FaCreditCard, FaFileAlt, FaImage } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { getCurrencyDecimals } from '../data/General';
 
 const TransactionsR = ({
   groupedTransactions,
@@ -25,6 +26,8 @@ const TransactionsR = ({
   mainCurrency,
   getMonthlyTotal,
 }) => {
+  const navigate = useNavigate();
+
   const getPaymentMethodBadgeColor = (paymentMethod) => {
     if (!paymentMethod || !paymentMethod.type) {
       console.warn('Invalid payment method:', paymentMethod);
@@ -76,6 +79,19 @@ const TransactionsR = ({
     const month = date.toLocaleString('default', { month: 'short' });
     const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     return `${day} ${month}, ${time}`;
+  };
+
+  const handleRowClick = (transactionId) => {
+    navigate(`/transaction/${transactionId}`);
+  };
+
+  const formatAmount = (amount, currency) => {
+    const decimals = getCurrencyDecimals(currency);
+    return parseFloat(amount).toFixed(decimals);
+  };
+
+  const truncateDescription = (description, maxLength = 30) => {
+    return description.length > maxLength ? `${description.substring(0, maxLength)}...` : description;
   };
 
   return (
@@ -132,36 +148,37 @@ const TransactionsR = ({
           <Table striped bordered hover>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Converted Amount</th>
-                <th>Payment Method</th>
-                <th>Details</th>
+                <th style={{ width: '120px' }}>Date</th>
+                <th style={{ width: '150px' }}>Category</th>
+                <th style={{ width: '150px' }}>Amount</th>
+                <th style={{ width: '150px' }}>Converted</th>
+                <th style={{ width: '160px' }}>Payment Method</th>
+                <th>Description</th>
               </tr>
             </thead>
             <tbody>
               {transactions.map((transaction) => (
-                <tr key={transaction.id}>
+                <tr key={transaction.id} onClick={() => handleRowClick(transaction.id)} style={{ cursor: 'pointer' }}>
                   <td>{formatDateTime(transaction.date)}</td>
-                  <td>
-                    {userCategories.find(c => c.id === transaction.categoryId)?.name}
-                    {transaction.description && <FaFileAlt className="ms-2" />}
-                    {(transaction.receipt || transaction.productImage) && <FaImage className="ms-2" />}
-                  </td>
-                  <td>{transaction.amount} {transaction.fromCurrency}</td>
-                  <td>{parseFloat(transaction.convertedAmount).toFixed(2)} {mainCurrency}</td>
+                  <td>{userCategories.find(c => c.id === transaction.categoryId)?.name}</td>
+                  <td>{formatAmount(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency}</td>
+                  <td>{formatAmount(transaction.convertedAmount, mainCurrency)} {mainCurrency}</td>
                   <td>
                     <Badge
                       bg={getPaymentMethodBadgeColor(transaction.paymentMethod)}
                       style={{ cursor: 'pointer' }}
-                      onClick={() => handleShowPaymentDetails(transaction.paymentMethod)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShowPaymentDetails(transaction.paymentMethod);
+                      }}
                     >
                       {getPaymentMethodDisplay(transaction.paymentMethod)}
                     </Badge>
                   </td>
                   <td>
-                    <Link to={`/transaction/${transaction.id}`}>View</Link>
+                    {transaction.description && <FaFileAlt className="me-1" />}
+                    {(transaction.receipt || transaction.productImage) && <FaImage className="me-1" />}
+                    {truncateDescription(transaction.description || 'No description')}
                   </td>
                 </tr>
               ))}
