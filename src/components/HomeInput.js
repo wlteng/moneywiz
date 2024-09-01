@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { Container, Form, Button, InputGroup, Dropdown, Row, Col, DropdownButton } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Form, Button, InputGroup, Dropdown, Row, Col } from 'react-bootstrap';
 import { getConvertedAmount, currencyList } from '../data/General';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { useNavigate } from 'react-router-dom';
 import { auth } from '../services/firebase';
 
 const HomeInput = ({
@@ -11,12 +10,21 @@ const HomeInput = ({
   recentPaymentMethods,
   userPaymentMethods,
 }) => {
-  const navigate = useNavigate();
   const [amounts, setAmounts] = useState({});  
-  const [paymentMethod, setPaymentMethod] = useState({ type: 'Cash', details: { type: 'Cash' } });
+  const [paymentMethod, setPaymentMethod] = useState({ type: 'Cash', details: {} });
   const [fromCurrency, setFromCurrency] = useState(localStorage.getItem('lastChosenCurrency') || 'SGD');
   const [toCurrency] = useState(localStorage.getItem('mainCurrency') || 'MYR');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleAmountChange = (categoryId, value) => {
     if (!isNaN(value) && value.match(/^\d*\.?\d{0,2}$/)) {
@@ -50,38 +58,26 @@ const HomeInput = ({
     const now = new Date();
 
     const transaction = {
-      amount: amount.toFixed(2),
-      categoryId,
-      categoryName,
-      convertedAmount,
-      date: now.toISOString().split('T')[0],
-      time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      fromCurrency,
-      paymentMethod: {
-        details: {
-          type: paymentMethod.details.type,
-          name: paymentMethod.details.name || null,
-          last4: paymentMethod.details.last4 || null,
-          bank: paymentMethod.details.bank || null,
-        }
-      },
-      toCurrency,
       userId: user.uid,
+      amount: amount.toFixed(2),
+      convertedAmount,
+      paymentMethod,
       description: "",
       receipt: null,
       productImage: null,
+      date: now.toISOString(),
+      fromCurrency,
+      toCurrency,
+      categoryId,
+      categoryName,
     };
-
-    console.log('Transaction to be submitted:', transaction);  // Add this line for debugging
 
     try {
       await addDoc(collection(db, 'expenses'), transaction);
-      console.log('Transaction submitted successfully');
       setShowSuccess(true);
 
       setTimeout(() => {
         setShowSuccess(false);
-        navigate('/transactions');
       }, 2000);
     } catch (error) {
       console.error('Error submitting transaction:', error);
@@ -89,55 +85,93 @@ const HomeInput = ({
   };
 
   const getPaymentMethodTag = (method) => {
-    if (!method || !method.details || !method.details.type) return 'Unknown';
-    switch (method.details.type.toLowerCase()) {
-      case 'cash':
+    if (!method || !method.type) return 'Unknown';
+    switch (method.type) {
+      case 'Cash':
         return 'Cash';
-      case 'credit card':
-        return `Credit-${method.details.last4 || 'XXXX'}`;
-      case 'debit card':
-        return `Debit-${method.details.last4 || 'XXXX'}`;
-      case 'e-wallet':
-        return method.details.name || 'E-Wallet';
+      case 'Credit Card':
+        return `Credit - ${method.details.last4}`;
+      case 'Debit Card':
+        return `Debit - ${method.details.last4}`;
+      case 'E-Wallet':
+        return `E-Wallet - ${method.details.name}`;
       default:
-        return `${method.details.type}`;
+        return `${method.type}`;
     }
   };
 
+  const getPaymentMethodBadgeColor = (type) => {
+    switch (type) {
+      case 'E-Wallet':
+        return '#007bff'; // primary blue
+      case 'Debit Card':
+        return '#28a745'; // success green
+      case 'Credit Card':
+        return '#dc3545'; // danger red
+      case 'Cash':
+      default:
+        return '#6c757d'; // secondary gray
+    }
+  };
+
+  const uniquePaymentMethods = [
+    { type: 'Cash', details: {} },
+    ...Array.from(new Set([...recentPaymentMethods, ...userPaymentMethods].map(JSON.stringify)))
+      .map(JSON.parse)
+      .filter(method => method.type !== 'Cash')
+  ];
+
   return (
     <Container className="mt-4 pb-5" style={{ maxWidth: '100%' }}>
-      <Row>
-        <Col>
-          <DropdownButton
-            as={InputGroup.Prepend}
-            variant="outline-secondary"
-            title={fromCurrency}
-            id="input-group-dropdown-1"
-          >
-            {currencyList.map((currency) => (
-              <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
-                {currency.name}
-              </Dropdown.Item>
-            ))}
-          </DropdownButton>
+      <Row className="mb-3">
+        <Col xs={6} className="pe-1">
+          <Dropdown>
+            <Dropdown.Toggle 
+              variant="outline-secondary" 
+              id="currency-dropdown"
+              style={{ width: '100%' }}
+            >
+              {fromCurrency}
+            </Dropdown.Toggle>
+            <Dropdown.Menu style={{ width: '100%' }}>
+              {currencyList.map((currency) => (
+                <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
+                  {currency.name}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
         </Col>
-        <Col>
-          <DropdownButton
-            variant="outline-secondary"
-            title={getPaymentMethodTag(paymentMethod)}
-            id="input-group-dropdown-2"
-          >
-            {[...recentPaymentMethods, ...userPaymentMethods].map((method, index) => (
-              <Dropdown.Item key={index} onClick={() => handlePaymentMethodChange(method)}>
-                {getPaymentMethodTag(method)}
-              </Dropdown.Item>
-            ))}
-          </DropdownButton>
+        <Col xs={6} className="ps-1">
+          <Dropdown>
+            <Dropdown.Toggle 
+              variant="outline-secondary" 
+              id="payment-method-dropdown"
+              style={{ 
+                width: '100%', 
+                backgroundColor: getPaymentMethodBadgeColor(paymentMethod.type),
+                color: 'white'
+              }}
+            >
+              {getPaymentMethodTag(paymentMethod)}
+            </Dropdown.Toggle>
+            <Dropdown.Menu style={{ width: '100%' }}>
+              {uniquePaymentMethods.map((method, index) => (
+                <Dropdown.Item 
+                  key={index} 
+                  onClick={() => handlePaymentMethodChange(method)}
+                  style={{ backgroundColor: getPaymentMethodBadgeColor(method.type), color: 'white' }}
+                >
+                  {getPaymentMethodTag(method)}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
         </Col>
       </Row>
-      <Row className="mt-3">
-        {userCategories.map((category) => (
-          <Col xs={12} key={category.id} className="mb-3">
+      {userCategories.map((category) => (
+        <Row key={category.id} className="mb-3">
+          <Col xs={12}>
             <InputGroup>
               <Form.Control
                 type="text"
@@ -147,15 +181,20 @@ const HomeInput = ({
               />
               <Button
                 variant="primary"
-                style={{ backgroundColor: category.color, borderColor: category.color, minWidth: '200px' }}
+                style={{ backgroundColor: category.color, borderColor: category.color, minWidth: '120px' }}
                 onClick={() => handleQuickSubmit(category.id, category.name)}
               >
                 {category.name}
               </Button>
             </InputGroup>
+            {amounts[category.id] && (
+              <small className="text-muted">
+                Converted: {getConvertedAmount(parseFloat(amounts[category.id]), fromCurrency, toCurrency).toFixed(2)} {toCurrency}
+              </small>
+            )}
           </Col>
-        ))}
-      </Row>
+        </Row>
+      ))}
 
       {showSuccess && (
         <div style={{

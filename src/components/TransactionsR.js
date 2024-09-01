@@ -72,6 +72,14 @@ const TransactionsR = ({
     return transactions.reduce((total, t) => total + parseFloat(t.convertedAmount), 0).toFixed(2);
   };
 
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'short' });
+    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${day} ${month}, ${time}`;
+  };
+
   return (
     <div className="container mt-4">
       <h2>Transactions</h2>
@@ -137,7 +145,7 @@ const TransactionsR = ({
             <tbody>
               {transactions.map((transaction) => (
                 <tr key={transaction.id}>
-                  <td>{new Date(transaction.date).toLocaleDateString()}</td>
+                  <td>{formatDateTime(transaction.date)}</td>
                   <td>
                     {userCategories.find(c => c.id === transaction.categoryId)?.name}
                     {transaction.description && <FaFileAlt className="ms-2" />}
