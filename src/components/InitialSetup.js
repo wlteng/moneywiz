@@ -4,6 +4,7 @@ import { auth, db } from '../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { currencyList } from '../data/General';
 import { HexColorPicker } from 'react-colorful'; // Import HexColorPicker
+import { FaPlus } from 'react-icons/fa';
 
 const InitialSetup = () => {
   const [user, setUser] = useState(null);
@@ -206,9 +207,11 @@ const InitialSetup = () => {
         </Form.Group>
 
         <div className="d-flex justify-content-between align-items-center">
-          <h3>Categories</h3>
-          <Button onClick={() => setShowCategoryModal(true)}>Add Category</Button>
-        </div>
+  <h3 className="mt-3">Categories</h3>
+  <Button onClick={() => setShowCategoryModal(true)}>
+    <FaPlus />
+  </Button>
+</div>
         <ListGroup className="mb-3">
           {categories.map((category, index) => (
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
@@ -233,9 +236,11 @@ const InitialSetup = () => {
         </ListGroup>
 
         <div className="d-flex justify-content-between align-items-center">
-          <h3 className="mt-3">Payment Methods</h3>
-                    <Button onClick={() => setShowPaymentMethodModal(true)}>Add Payment Method</Button>
-        </div>
+  <h3 className="mt-3">Payment Methods</h3>
+  <Button onClick={() => setShowPaymentMethodModal(true)}>
+    <FaPlus />
+  </Button>
+</div>
         <ListGroup className="mb-3">
           {paymentMethods.map((method, index) => (
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
@@ -252,9 +257,11 @@ const InitialSetup = () => {
         </ListGroup>
 
         <div className="d-flex justify-content-between align-items-center">
-          <h3 className="mt-3">Investment Platforms</h3>
-          <Button onClick={() => setShowPlatformModal(true)}>Add Platform</Button>
-        </div>
+  <h3 className="mt-3">Investment Platforms</h3>
+  <Button onClick={() => setShowPlatformModal(true)}>
+    <FaPlus />
+  </Button>
+</div>
         <ListGroup className="mb-3">
           {platforms.map((platform, index) => (
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
