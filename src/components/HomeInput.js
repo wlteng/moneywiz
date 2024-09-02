@@ -3,6 +3,7 @@ import { Container, Form, Button, InputGroup, Dropdown, Row, Col } from 'react-b
 import { getConvertedAmount, currencyList } from '../data/General';
 import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
+import { useMediaQuery } from 'react-responsive';
 
 const HomeInput = ({
   userCategories,
@@ -15,6 +16,8 @@ const HomeInput = ({
   const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'MYR');
   const [showSuccess, setShowSuccess] = useState(false);
   const [user, setUser] = useState(null);
+
+  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -131,21 +134,78 @@ const HomeInput = ({
       .filter(method => method.type !== 'Cash')
   ];
 
+  const mobileStyles = {
+    container: {
+      paddingLeft: '5px !important',
+      paddingRight: '5px !important',
+    },
+    dropdown: {
+      height: '40px',
+    },
+    input: {
+      height: '40px',
+    },
+    button: {
+      height: '40px',
+      fontSize: '1.1rem',
+    },
+    checkbox: {
+      height: '30px',
+      width: '60px',
+    },
+  };
+
   return (
-    <Container className="mt-4 pb-5" style={{ maxWidth: '100%' }}>
+    <Container className="mt-4 pb-5" style={{ 
+      maxWidth: '100%', 
+      ...(isMobile ? mobileStyles.container : {})
+    }}>
+      <style>
+        {`
+          @media (max-width: 767px) {
+            .container, .container-fluid {
+              padding-left: 5px !important;
+              padding-right: 5px !important;
+            }
+            input[type="checkbox"] {
+              height: 30px;
+              width: 60px;
+            }
+            .form-switch {
+                        display: flex;
+                        align-items: center;
+                      }
+                      
+                      .form-switch .form-check-input {
+                        margin-right: 10px;
+                      }
+                      
+                      .form-switch .form-check-label {
+                        margin-bottom: 0;
+                      }
+          }
+        `}
+      </style>
       <Row className="mb-3">
         <Col xs={6} className="pe-1">
           <Dropdown>
             <Dropdown.Toggle 
               variant="outline-secondary" 
               id="currency-dropdown"
-              style={{ width: '100%' }}
+              style={{ 
+                width: '100%',
+                ...(isMobile ? mobileStyles.dropdown : {})
+              }}
             >
               {fromCurrency}
             </Dropdown.Toggle>
             <Dropdown.Menu style={{ width: '100%' }}>
               {currencyList.map((currency) => (
-                <Dropdown.Item key={currency.code} onClick={() => handleCurrencyChange(currency.code)}>
+                <Dropdown.Item 
+                  key={currency.code} 
+                  onClick={() => handleCurrencyChange(currency.code)}
+                  style={isMobile ? { padding: '10px' } : {}}
+                >
                   {currency.name}
                 </Dropdown.Item>
               ))}
@@ -160,7 +220,8 @@ const HomeInput = ({
               style={{ 
                 width: '100%', 
                 backgroundColor: getPaymentMethodBadgeColor(paymentMethod.type),
-                color: 'white'
+                color: 'white',
+                ...(isMobile ? mobileStyles.dropdown : {})
               }}
             >
               {getPaymentMethodTag(paymentMethod)}
@@ -170,7 +231,11 @@ const HomeInput = ({
                 <Dropdown.Item 
                   key={index} 
                   onClick={() => handlePaymentMethodChange(method)}
-                  style={{ backgroundColor: getPaymentMethodBadgeColor(method.type), color: 'white' }}
+                  style={{ 
+                    backgroundColor: getPaymentMethodBadgeColor(method.type), 
+                    color: 'white',
+                    ...(isMobile ? { padding: '10px' } : {})
+                  }}
                 >
                   {getPaymentMethodTag(method)}
                 </Dropdown.Item>
@@ -188,10 +253,16 @@ const HomeInput = ({
                 value={amounts[category.id] || ''}  
                 onChange={(e) => handleAmountChange(category.id, e.target.value)}
                 placeholder={`Enter amount for ${category.name}`}
+                style={isMobile ? mobileStyles.input : {}}
               />
               <Button
                 variant="primary"
-                style={{ backgroundColor: category.color, borderColor: category.color, minWidth: '120px' }}
+                style={{ 
+                  backgroundColor: category.color, 
+                  borderColor: category.color, 
+                  minWidth: '120px',
+                  ...(isMobile ? mobileStyles.button : {})
+                }}
                 onClick={() => handleQuickSubmit(category.id, category.name)}
               >
                 {category.name}

@@ -3,8 +3,8 @@ import { Container, Form, Button, ListGroup, Modal, Alert, InputGroup, Badge } f
 import { auth, db } from '../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { currencyList } from '../data/General';
-import { HexColorPicker } from 'react-colorful'; // Import HexColorPicker
-import { FaPlus } from 'react-icons/fa';
+import { HexColorPicker } from 'react-colorful';
+import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 
 const InitialSetup = () => {
   const [user, setUser] = useState(null);
@@ -206,12 +206,12 @@ const InitialSetup = () => {
           </Form.Select>
         </Form.Group>
 
-        <div className="d-flex justify-content-between align-items-center">
-  <h3 className="mt-3">Categories</h3>
-  <Button onClick={() => setShowCategoryModal(true)}>
-    <FaPlus />
-  </Button>
-</div>
+       <div className="d-flex justify-content-between align-items-center">
+          <h3 className="mt-3">Categories</h3>
+          <Button onClick={() => setShowCategoryModal(true)}>
+            <FaPlus />
+          </Button>
+        </div>
         <ListGroup className="mb-3">
           {categories.map((category, index) => (
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
@@ -228,47 +228,59 @@ const InitialSetup = () => {
                 {category.name}
               </div>
               <div>
-                <Button variant="light" size="sm" onClick={() => handleEditCategory(index)} className="me-2">Edit</Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(category, 'category')}>Delete</Button>
+                <Button variant="light" size="sm" onClick={() => handleEditCategory(index)} className="me-2">
+                  <FaEdit />
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(category, 'category')}>
+                  <FaTrash />
+                </Button>
               </div>
             </ListGroup.Item>
           ))}
         </ListGroup>
 
         <div className="d-flex justify-content-between align-items-center">
-  <h3 className="mt-3">Payment Methods</h3>
-  <Button onClick={() => setShowPaymentMethodModal(true)}>
-    <FaPlus />
-  </Button>
-</div>
+          <h3 className="mt-3">Payment Methods</h3>
+          <Button onClick={() => setShowPaymentMethodModal(true)}>
+            <FaPlus />
+          </Button>
+        </div>
         <ListGroup className="mb-3">
           {paymentMethods.map((method, index) => (
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
               <div>
-                <Badge bg={getPaymentMethodBadgeColor(method.type)}>{method.type}</Badge> - 
+                <Badge bg={getPaymentMethodBadgeColor(method.type)}>{method.type}</Badge> 
                 {method.details.last4 ? ` ${method.details.last4} - ${method.details.bank}` : ` ${method.details.name}`}
               </div>
               <div>
-                <Button variant="light" size="sm" onClick={() => handleEditPaymentMethod(index)} className="me-2">Edit</Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(method, 'paymentMethod')}>Delete</Button>
+                <Button variant="light" size="sm" onClick={() => handleEditPaymentMethod(index)} className="me-2">
+                  <FaEdit />
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(method, 'paymentMethod')}>
+                  <FaTrash />
+                </Button>
               </div>
             </ListGroup.Item>
           ))}
         </ListGroup>
 
         <div className="d-flex justify-content-between align-items-center">
-  <h3 className="mt-3">Investment Platforms</h3>
-  <Button onClick={() => setShowPlatformModal(true)}>
-    <FaPlus />
-  </Button>
-</div>
+          <h3 className="mt-3">Investment Platforms</h3>
+          <Button onClick={() => setShowPlatformModal(true)}>
+            <FaPlus />
+          </Button>
+        </div>
         <ListGroup className="mb-3">
           {platforms.map((platform, index) => (
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
               {platform}
               <div>
-                <Button variant="light" size="sm" onClick={() => handleEditPlatform(index)} className="me-2">Edit</Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(platform, 'platform')}>Delete</Button>
+                <Button variant="light" size="sm" onClick={() => handleEditPlatform(index)} className="me-2">
+                  <FaEdit />
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(platform, 'platform')}>
+                  <FaTrash />
+                </Button>
               </div>
             </ListGroup.Item>
           ))}

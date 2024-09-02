@@ -5,6 +5,7 @@ import { db, auth } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 import InvestmentForm from '../components/InvestmentForm';
 import { FaChartLine, FaPlus, FaSort, FaFilter, FaDollarSign, FaCalendarAlt } from 'react-icons/fa';
+import { useMediaQuery } from 'react-responsive';
 
 const Investment = () => {
   const [investments, setInvestments] = useState([]);
@@ -16,6 +17,7 @@ const Investment = () => {
   const [filterPlatform, setFilterPlatform] = useState('');
   const [filterType, setFilterType] = useState('');
   const navigate = useNavigate();
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   const fetchInvestments = async () => {
     setLoading(true);
@@ -103,6 +105,7 @@ const Investment = () => {
         return b.date - a.date;
       }
     });
+  
 
   return (
     <Container>
@@ -127,7 +130,8 @@ const Investment = () => {
           <div className="d-flex justify-content-end mb-3">
             <Dropdown className="me-2">
               <Dropdown.Toggle variant="outline-secondary">
-                <FaSort /> {sortBy === 'date' ? 'Date' : 'Amount'}
+                <FaSort />
+                {!isMobile && ` ${sortBy === 'date' ? 'Date' : 'Amount'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setSortBy('date')}>Date</Dropdown.Item>
@@ -136,7 +140,8 @@ const Investment = () => {
             </Dropdown>
             <Dropdown className="me-2">
               <Dropdown.Toggle variant="outline-secondary">
-                <FaDollarSign /> {filterCurrency || 'All Currencies'}
+                <FaDollarSign />
+                {!isMobile && ` ${filterCurrency || 'All Currencies'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setFilterCurrency('')}>All Currencies</Dropdown.Item>
@@ -147,7 +152,8 @@ const Investment = () => {
             </Dropdown>
             <Dropdown className="me-2">
               <Dropdown.Toggle variant="outline-secondary">
-                <FaFilter /> {filterPlatform || 'All Platforms'}
+                <FaFilter />
+                {!isMobile && ` ${filterPlatform || 'All Platforms'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setFilterPlatform('')}>All Platforms</Dropdown.Item>
@@ -158,7 +164,8 @@ const Investment = () => {
             </Dropdown>
             <Dropdown>
               <Dropdown.Toggle variant="outline-secondary">
-                <FaCalendarAlt /> {filterType || 'All Types'}
+                <FaCalendarAlt />
+                {!isMobile && ` ${filterType || 'All Types'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setFilterType('')}>All Types</Dropdown.Item>
