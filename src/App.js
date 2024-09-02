@@ -79,9 +79,9 @@ const App = () => {
 
   return (
     <Router>
-      <Header user={user} /> {/* Pass user prop to Header */}
+      <Header user={user} />
       <Routes>
-        <Route path="/" element={<Home />} /> {/* Home is now accessible to all */}
+        <Route path="/" element={<Home user={user} />} />
         <Route path="/keyboard/:categoryId" element={<ProtectedRoute><Keyboard /></ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
         <Route path="/transaction/:transactionId" element={<ProtectedRoute><SingleTransaction /></ProtectedRoute>} />

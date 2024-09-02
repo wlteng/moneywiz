@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Alert, Modal } from 'react-bootstrap';
+import { Container, Form, Button, Alert, Modal, Row, Col } from 'react-bootstrap';
 import { auth, db } from '../services/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { sendPasswordResetEmail } from 'firebase/auth';
@@ -41,7 +41,6 @@ const Settings = () => {
         const userData = userSnap.data();
         setSettings(userData.settings || settings);
       } else {
-        // If the user document doesn't exist, create it with default settings
         await setDoc(userRef, { settings });
       }
     } catch (err) {
@@ -114,6 +113,19 @@ const Settings = () => {
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
       <Form>
+        <Row className="align-items-center mb-3">
+          <Col>
+            <h3>Quick Input</h3>
+          </Col>
+          <Col xs="auto">
+            <Form.Check 
+              type="switch"
+              id="quick-input"
+              checked={settings.quickInputEnabled}
+              onChange={() => handleSettingChange('quickInputEnabled')}
+            />
+          </Col>
+        </Row>
         <Form.Group className="mb-3">
           <Form.Check 
             type="switch"
@@ -166,15 +178,6 @@ const Settings = () => {
             label="Require Password for Investments"
             checked={settings.usePasswordForInvestments}
             onChange={() => handleSettingChange('usePasswordForInvestments')}
-          />
-        </Form.Group>
-        <Form.Group className="mb-3">
-          <Form.Check 
-            type="switch"
-            id="quick-input"
-            label="Enable Quick Input"
-            checked={settings.quickInputEnabled}
-            onChange={() => handleSettingChange('quickInputEnabled')}
           />
         </Form.Group>
         <Button variant="primary" onClick={saveSettings} className="me-2">Save Settings</Button>

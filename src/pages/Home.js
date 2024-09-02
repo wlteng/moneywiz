@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Button } from 'react-bootstrap';
+import { Container, Row, Col, Button, Form } from 'react-bootstrap';
 import { auth, db } from '../services/firebase';
-import { doc, getDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import HomeInput from '../components/HomeInput';
 
-const Home = () => {
+const Home = ({ user }) => {
   const [userCategories, setUserCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quickInputEnabled, setQuickInputEnabled] = useState(false);
@@ -16,8 +16,7 @@ const Home = () => {
   const [userPaymentMethods, setUserPaymentMethods] = useState([]);
 
   useEffect(() => {
-    const fetchUserCategories = async () => {
-      const user = auth.currentUser;
+    const fetchUserData = async () => {
       if (user) {
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
@@ -26,23 +25,23 @@ const Home = () => {
           setUserCategories(userData.categories || []);
           setRecentPaymentMethods(userData.recentPaymentMethods || []);
           setUserPaymentMethods(userData.paymentMethods || []);
-          setQuickInputEnabled(userData.settings?.quickInputEnabled || false); // Fetch quick input setting
+          setQuickInputEnabled(userData.settings?.quickInputEnabled || false);
         }
       }
       setLoading(false);
     };
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchUserCategories();
-      } else {
-        setUserCategories([]);
-        setLoading(false);
-      }
-    });
+    fetchUserData();
+  }, [user]);
 
-    return () => unsubscribe();
-  }, []);
+  const handleQuickInputChange = async (event) => {
+    const isEnabled = event.target.checked;
+    setQuickInputEnabled(isEnabled);
+    if (user) {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, { 'settings.quickInputEnabled': isEnabled });
+    }
+  };
 
   const handleCurrencyChange = (currency) => {
     setSelectedCurrency(currency);
@@ -61,7 +60,6 @@ const Home = () => {
     try {
       await addDoc(collection(db, 'expenses'), transaction);
       console.log('Transaction submitted:', transaction);
-      // Optionally reset the state or show success feedback
     } catch (error) {
       console.error('Error submitting transaction:', error);
     }
@@ -73,8 +71,16 @@ const Home = () => {
 
   return (
     <Container className="mt-4">
-      <h1 className="text-center">Home</h1>
-      
+      {user && (
+        <Form.Check 
+          type="switch"
+          id="quick-input-switch"
+          label="Quick Input"
+          checked={quickInputEnabled}
+          onChange={handleQuickInputChange}
+          className="mb-3"
+        />
+      )}
       {quickInputEnabled ? (
         <HomeInput
           userCategories={userCategories}
