@@ -103,9 +103,9 @@ const HomeInput = ({
       case 'Cash':
         return 'Cash';
       case 'Credit Card':
-        return `Credit - ${method.details.last4}`;
+        return `Credit - ${method.details.bank} - ${method.details.last4}`;
       case 'Debit Card':
-        return `Debit - ${method.details.last4}`;
+        return `Debit - ${method.details.bank} - ${method.details.last4}`;
       case 'E-Wallet':
         return `E-Wallet - ${method.details.name}`;
       default:
@@ -172,22 +172,22 @@ const HomeInput = ({
               width: 60px;
             }
             .form-switch {
-                        display: flex;
-                        align-items: center;
-                      }
-                      
-                      .form-switch .form-check-input {
-                        margin-right: 10px;
-                      }
-                      
-                      .form-switch .form-check-label {
-                        margin-bottom: 0;
-                      }
+              display: flex;
+              align-items: center;
+            }
+            
+            .form-switch .form-check-input {
+              margin-right: 10px;
+            }
+            
+            .form-switch .form-check-label {
+              margin-bottom: 0;
+            }
           }
         `}
       </style>
       <Row className="mb-3">
-        <Col xs={6} className="pe-1">
+        <Col xs={4} className="pe-1">
           <Dropdown>
             <Dropdown.Toggle 
               variant="outline-secondary" 
@@ -212,7 +212,7 @@ const HomeInput = ({
             </Dropdown.Menu>
           </Dropdown>
         </Col>
-        <Col xs={6} className="ps-1">
+        <Col xs={8} className="ps-1">
           <Dropdown>
             <Dropdown.Toggle 
               variant="outline-secondary" 
@@ -220,6 +220,7 @@ const HomeInput = ({
               style={{ 
                 width: '100%', 
                 backgroundColor: getPaymentMethodBadgeColor(paymentMethod.type),
+                borderColor: getPaymentMethodBadgeColor(paymentMethod.type),
                 color: 'white',
                 ...(isMobile ? mobileStyles.dropdown : {})
               }}

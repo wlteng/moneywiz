@@ -71,6 +71,31 @@ const Home = ({ user }) => {
 
   return (
     <Container className="mt-4">
+      <style>
+        {`
+          .form-switch {
+            display: flex;
+            align-items: center;
+            padding-left: 40px;
+          }
+          .form-switch .form-check-input {
+            height: 1.5rem;
+            width: 3rem;
+            margin-right: 0.5rem;
+          }
+          .form-switch .form-check-label {
+            margin-bottom: 0;
+          }
+          .dropdown-toggle {
+            background-color: rgb(181, 201, 219) !important;
+            border: none !important;
+            border-radius: 1rem !important;
+          }
+          .form-control::placeholder {
+            color: transparent;
+          }
+        `}
+      </style>
       {user && (
         <Form.Check 
           type="switch"

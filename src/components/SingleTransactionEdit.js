@@ -156,6 +156,7 @@ const SingleTransactionEdit = () => {
     }));
   };
 
+  // Modified: Updated getPaymentMethodTag function
   const getPaymentMethodTag = (method) => {
     if (!method || !method.type) return 'Unknown';
 
@@ -163,9 +164,9 @@ const SingleTransactionEdit = () => {
       case 'Cash':
         return 'Cash';
       case 'Credit Card':
-        return `Credit Card: ${method.details.bank} (${method.details.last4})`;
+        return `credit-${method.details.bank}-${method.details.last4}`;
       case 'Debit Card':
-        return `Debit Card: ${method.details.bank} (${method.details.last4})`;
+        return `debit-${method.details.bank}-${method.details.last4}`;
       case 'E-Wallet':
         return `E-Wallet: ${method.details.name}`;
       default:
@@ -220,7 +221,6 @@ const SingleTransactionEdit = () => {
     return <p>Loading...</p>;
   }
 
-
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -236,8 +236,7 @@ const SingleTransactionEdit = () => {
           <Col>
             <Form.Group className="mb-3">
               <Form.Label>Date</Form.Label>
-              <Form.Control 
-                type="date" 
+              <Form.Control type="date" 
                 value={date}
                 onChange={(e) => {
                   console.log('Date changed:', e.target.value);
@@ -312,7 +311,8 @@ const SingleTransactionEdit = () => {
 
         <Form.Group className="mb-3">
           <Form.Label>Payment Method</Form.Label>
-          <div className="d-flex overflow-auto mb-2">
+          {/* Modified: Added padding-bottom to the payment method sliding section */}
+          <div className="d-flex overflow-auto mb-2 pb-2" style={{ paddingBottom: '10px' }}>
             {uniquePaymentMethods.map((method, index) => (
               <Button
                 key={index}
@@ -321,7 +321,7 @@ const SingleTransactionEdit = () => {
                 className={`me-2 ${editedTransaction.paymentMethod.type === method.type ? 'active' : ''}`}
                 style={{ flexShrink: 0 }}
               >
-                {method.type === 'Cash' ? 'Cash' : getPaymentMethodTag(method).split(':')[0]}
+                {getPaymentMethodTag(method)}
               </Button>
             ))}
           </div>

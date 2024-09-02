@@ -65,15 +65,17 @@ const SingleTransaction = () => {
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
+        {/* Modified: Changed "Back to Transactions" to "Back" */}
         <Button variant="outline-primary" onClick={() => navigate('/transactions')}>
-          <FaArrowLeft /> Back to Transactions
+          <FaArrowLeft /> Back
         </Button>
         <div>
+          {/* Modified: Changed Edit and Delete buttons to icon buttons */}
           <Button variant="warning" onClick={() => navigate(`/transaction/${transactionId}/edit`)} className="me-2">
-            <FaEdit /> Edit
+            <FaEdit />
           </Button>
           <Button variant="danger" onClick={handleDelete}>
-            <FaTrash /> Delete
+            <FaTrash />
           </Button>
         </div>
       </div>

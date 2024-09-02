@@ -33,7 +33,17 @@ const InitialSetup = () => {
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedCategoryForColor, setSelectedCategoryForColor] = useState(null);
+  const vintageColors = [
+    '#8B4513', '#A0522D', '#CD853F', '#DEB887', '#D2691E',
+    '#B8860B', '#DAA520', '#FFD700', '#F4A460', '#D2B48C',
+    '#FFDAB9', '#FFA07A', '#FF7F50', '#FF6347', '#FF4500',
+    '#FFA500', '#FF8C00', '#FAF0E6', '#FAEBD7', '#FFE4B5'
+  ];
 
+  const getRandomColor = () => {
+    return vintageColors[Math.floor(Math.random() * vintageColors.length)];
+  };
+  
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {

@@ -62,7 +62,6 @@ const Header = ({ user }) => {
         customBurgerIcon={false}
         customCrossIcon={<CrossIcon />}
         styles={menuStyles}
-        overlayClassName={'overlay'}
       >
         {user && (
           <div style={userInfoStyles}>
@@ -105,7 +104,6 @@ const Header = ({ user }) => {
           </div>
         )}
       </Menu>
-      {isMenuOpen && <div style={overlayStyles} onClick={closeMenu} />}
     </header>
   );
 };
@@ -248,16 +246,6 @@ const iconStyles = {
   marginLeft: '15px',
 };
 
-const overlayStyles = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.3)',
-  zIndex: 1000,
-};
-
 const menuStyles = {
   bmBurgerButton: {
     display: 'none',
@@ -297,6 +285,6 @@ const menuStyles = {
     fontSize: '1.2rem',
   },
   bmOverlay: {
-    display: 'none',
+    background: 'rgba(0, 0, 0, 0.3)',
   },
 };
