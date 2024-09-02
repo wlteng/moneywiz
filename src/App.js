@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { auth } from './services/firebase';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import Home from './pages/Home';
 import Transactions from './pages/Transactions';
 import SingleTransaction from './pages/SingleTransaction';
@@ -11,42 +13,75 @@ import Investment from './pages/Investment';
 import InvestmentDetail from './components/InvestmentDetail';
 import ReportInvest from './components/ReportInvest';
 import Header from './components/Header';
-import { auth } from './services/firebase';
 import Debt from './pages/Debt';
 import DebtDetail from './components/DebtDetail';
 import ReportDebt from './components/ReportDebt';
 import Settings from './pages/Settings';
 import InitialSetup from './components/InitialSetup';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
 
 const App = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    const handleAuth = async () => {
+      try {
+        // Handle redirect result first
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          setUser(result.user);
+        }
+
+        // Set up the auth state listener
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          setUser(user);
+          setLoading(false);
+        }, (error) => {
+          console.error("Auth state error:", error);
+          setAuthError(error);
+          setLoading(false);
+        });
+
+        return unsubscribe;
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+        setAuthError(error);
+        setLoading(false);
+      }
+    };
+
+    handleAuth();
   }, []);
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
+  if (authError) {
+    return <div>An authentication error occurred. Please try logging in again.</div>;
+  }
+
   // Custom Route component to handle authentication
   const ProtectedRoute = ({ children }) => {
-    if (!user) {
-      return <Navigate to="/profile" replace />;
-    }
+    const navigate = useNavigate();
+    
+    useEffect(() => {
+      if (!user) {
+        navigate('/profile', { replace: true });
+      }
+    }, [user, navigate]);
+
     return children;
   };
 
   return (
     <Router>
-      {user && <Header />}
+      <Header user={user} /> {/* Pass user prop to Header */}
       <Routes>
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/" element={<Home />} /> {/* Home is now accessible to all */}
         <Route path="/keyboard/:categoryId" element={<ProtectedRoute><Keyboard /></ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
         <Route path="/transaction/:transactionId" element={<ProtectedRoute><SingleTransaction /></ProtectedRoute>} />
@@ -61,6 +96,8 @@ const App = () => {
         <Route path="/debts" element={<ProtectedRoute><Debt /></ProtectedRoute>} />
         <Route path="/debts/:id" element={<ProtectedRoute><DebtDetail /></ProtectedRoute>} />
         <Route path="/report/debts" element={<ProtectedRoute><ReportDebt /></ProtectedRoute>} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Routes>
     </Router>
   );

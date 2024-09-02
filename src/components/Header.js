@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { slide as Menu } from 'react-burger-menu';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({ user }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,6 +24,17 @@ const Header = () => {
     setIsMenuOpen(false);
   }, [location]);
 
+  const menuItems = [
+    { path: '/', label: 'Home' },
+    { path: '/transactions', label: 'Transactions', requireAuth: true },
+    { path: '/investments', label: 'Investments', requireAuth: true },
+    { path: '/debts', label: 'Debts', requireAuth: true },
+    { path: '/report', label: 'Report', requireAuth: true },
+    { path: '/profile', label: 'Profile', requireAuth: true },
+    { path: '/settings', label: 'Settings', requireAuth: true },
+    { path: '/initial-setup', label: 'Initial Setup', requireAuth: true },
+  ];
+
   return (
     <header style={headerStyles}>
       {!isMenuOpen && (
@@ -39,19 +50,42 @@ const Header = () => {
         customCrossIcon={<CrossIcon />}
         styles={menuStyles}
       >
-        <Link to="/" className="bm-item" onClick={() => handleNavigation('/')}>Home</Link>
-        <Link to="/transactions" className="bm-item" onClick={() => handleNavigation('/transactions')}>Transactions</Link>
-        <Link to="/investments" className="bm-item" onClick={() => handleNavigation('/investments')}>Investments</Link>
-        <Link to="/debts" className="bm-item" onClick={() => handleNavigation('/debts')}>Debts</Link>
-        <Link to="/report" className="bm-item" onClick={() => handleNavigation('/report')}>Report</Link>
-        <Link to="/profile" className="bm-item" onClick={() => handleNavigation('/profile')}>Profile</Link>
-        <Link to="/settings" className="bm-item" onClick={() => handleNavigation('/settings')}>Settings</Link>
-        <Link to="/initial-setup" className="bm-item" onClick={() => handleNavigation('/initial-setup')}>Initial Setup</Link>
+        {menuItems.map((item) => (
+          (!item.requireAuth || user) && (
+            <Link 
+              key={item.path}
+              to={item.path} 
+              className="bm-item" 
+              onClick={() => handleNavigation(item.path)}
+            >
+              {item.label}
+            </Link>
+          )
+        ))}
+        {!user && (
+          <div style={authContainerStyles}>
+            <Link 
+              to="/login" 
+              style={loginButtonStyles} 
+              onClick={() => handleNavigation('/login')}
+            >
+              Login
+            </Link>
+            <Link 
+              to="/register" 
+              style={registerButtonStyles} 
+              onClick={() => handleNavigation('/register')}
+            >
+              Register
+            </Link>
+          </div>
+        )}
       </Menu>
-      <div style={logoStyles} onClick={() => navigate('/')}>Your App Name</div>
+      <div style={logoStyles} onClick={() => navigate('/')}>MoneyWiz</div>
     </header>
   );
 };
+
 
 const BurgerIcon = () => (
   <div style={burgerIconStyles}>
@@ -66,6 +100,35 @@ const CrossIcon = () => (
 );
 
 export default Header;
+
+const authContainerStyles = {
+  marginTop: 'auto',
+  padding: '20px 0',
+  display: 'flex',
+  justifyContent: 'space-between',
+};
+
+const buttonBaseStyles = {
+  padding: '10px 20px',
+  borderRadius: '5px',
+  textDecoration: 'none',
+  textAlign: 'center',
+  flex: 1,
+  margin: '0 5px',
+};
+
+const loginButtonStyles = {
+  ...buttonBaseStyles,
+  border: '1px solid #007bff',
+  color: '#007bff',
+};
+
+const registerButtonStyles = {
+  ...buttonBaseStyles,
+  backgroundColor: '#007bff',
+  color: 'white',
+};
+
 
 const headerStyles = {
   display: 'flex',
