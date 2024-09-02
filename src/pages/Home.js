@@ -1,124 +1,316 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Container, Row, Col, Button, Form } from 'react-bootstrap';
-import { auth, db } from '../services/firebase';
-import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
-import HomeInput from '../components/HomeInput';
+import React, { useState, useCallback } from 'react';
+import { slide as Menu } from 'react-burger-menu';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-const Home = ({ user }) => {
-  const [userCategories, setUserCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [quickInputEnabled, setQuickInputEnabled] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState(localStorage.getItem('lastChosenCurrency') || 'USD');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState({ type: 'Cash' });
-  const [amount, setAmount] = useState('');
-  const [recentPaymentMethods, setRecentPaymentMethods] = useState([]);
-  const [userPaymentMethods, setUserPaymentMethods] = useState([]);
+const Header = ({ user }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (user) {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          setUserCategories(userData.categories || []);
-          setRecentPaymentMethods(userData.recentPaymentMethods || []);
-          setUserPaymentMethods(userData.paymentMethods || []);
-          setQuickInputEnabled(userData.settings?.quickInputEnabled || false);
-        }
-      }
-      setLoading(false);
-    };
+  const handleNavigation = useCallback((path) => {
+    navigate(path);
+    setIsMenuOpen(false);
+  }, [navigate]);
 
-    fetchUserData();
-  }, [user]);
+  const handleStateChange = useCallback((state) => {
+    setIsMenuOpen(state.isOpen);
+  }, []);
 
-  const handleQuickInputChange = async (event) => {
-    const isEnabled = event.target.checked;
-    setQuickInputEnabled(isEnabled);
-    if (user) {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { 'settings.quickInputEnabled': isEnabled });
-    }
-  };
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen(prev => !prev);
+  }, []);
 
-  const handleCurrencyChange = (currency) => {
-    setSelectedCurrency(currency);
-    localStorage.setItem('lastChosenCurrency', currency);
-  };
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
 
-  const handlePaymentMethodChange = (method) => {
-    setSelectedPaymentMethod(method);
-  };
+  React.useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location]);
 
-  const handleAmountChange = (e) => {
-    setAmount(e.target.value);
-  };
-
-  const handleCategorySubmit = async (transaction) => {
-    try {
-      await addDoc(collection(db, 'expenses'), transaction);
-      console.log('Transaction submitted:', transaction);
-    } catch (error) {
-      console.error('Error submitting transaction:', error);
-    }
-  };
-
-  if (loading) {
-    return <Container className="mt-4"><h2>Loading...</h2></Container>;
-  }
+  const menuItems = [
+    { path: '/', label: 'Home' },
+    { path: '/transactions', label: 'Transactions', requireAuth: true },
+    { path: '/investments', label: 'Investments', requireAuth: true },
+    { path: '/debts', label: 'Debts', requireAuth: true },
+    { path: '/report', label: 'Report', requireAuth: true },
+    { path: '/profile', label: 'Profile', requireAuth: true },
+    { path: '/settings', label: 'Settings', requireAuth: true },
+    { path: '/initial-setup', label: 'Initial Setup', requireAuth: true },
+  ];
 
   return (
-    <Container className="mt-4">
+    <header style={headerStyles}>
+      <div style={burgerButtonStyles} onClick={toggleMenu}>
+        <BurgerIcon />
+      </div>
+      <div style={logoStyles} onClick={() => navigate('/')}>MoneyWiz</div>
       {user && (
-        <Form.Check 
-          type="switch"
-          id="quick-input-switch"
-          label="Quick Input"
-          checked={quickInputEnabled}
-          onChange={handleQuickInputChange}
-          className="mb-3"
-        />
+        <div style={iconContainerStyles}>
+          <div style={iconStyles} onClick={() => navigate('/transactions')}>
+            <TransactionIcon />
+          </div>
+          <div style={iconStyles} onClick={() => navigate('/report')}>
+            <ReportIcon />
+          </div>
+        </div>
       )}
-      {quickInputEnabled ? (
-        <HomeInput
-          userCategories={userCategories}
-          handleCurrencyChange={handleCurrencyChange}
-          handlePaymentMethodChange={handlePaymentMethodChange}
-          handleAmountChange={handleAmountChange}
-          amount={amount}
-          selectedCurrency={selectedCurrency}
-          selectedPaymentMethod={selectedPaymentMethod}
-          handleSubmitQuick={handleCategorySubmit}
-          recentPaymentMethods={recentPaymentMethods}
-          userPaymentMethods={userPaymentMethods}
-        />
-      ) : (
-        <>
-          <h2 className="text-center">Choose a Category</h2>
-          {userCategories.length > 0 ? (
-            <Row className="mt-4">
-              {userCategories.map(category => (
-                <Col xs={6} className="mb-3" key={category.id}>
-                  <Link to={`/keyboard/${category.id}`} style={{ textDecoration: 'none' }}>
-                    <Button 
-                      className="w-100" 
-                      style={{ backgroundColor: category.color, borderColor: category.color }}
-                    >
-                      {category.name}
-                    </Button>
-                  </Link>
-                </Col>
-              ))}
-            </Row>
-          ) : (
-            <p className="text-center mt-4">No categories found. Please add categories in your profile.</p>
-          )}
-        </>
-      )}
-    </Container>
+      <Menu 
+        left
+        isOpen={isMenuOpen}
+        onStateChange={handleStateChange}
+        customBurgerIcon={false}
+        customCrossIcon={false}
+        styles={menuStyles}
+        overlayClassName={'overlay'}
+      >
+        <div style={menuCloseButtonStyles} onClick={closeMenu}>
+          <CrossIcon />
+        </div>
+        {user && (
+          <div style={userInfoStyles}>
+            <img 
+              src={user.photoURL || '/default-avatar.png'} 
+              alt="User avatar" 
+              style={avatarStyles}
+            />
+            <span style={usernameStyles}>{user.displayName || user.email}</span>
+          </div>
+        )}
+        {menuItems.map((item) => (
+          (!item.requireAuth || user) && (
+            <Link 
+              key={item.path}
+              to={item.path} 
+              className="bm-item" 
+              onClick={() => handleNavigation(item.path)}
+              style={menuItemStyles}
+            >
+              {item.label}
+            </Link>
+          )
+        ))}
+        {!user && (
+          <div style={authContainerStyles}>
+            <Link 
+              to="/login" 
+              style={loginButtonStyles} 
+              onClick={() => handleNavigation('/login')}
+            >
+              Login
+            </Link>
+            <Link 
+              to="/register" 
+              style={registerButtonStyles} 
+              onClick={() => handleNavigation('/register')}
+            >
+              Register
+            </Link>
+          </div>
+        )}
+      </Menu>
+      {isMenuOpen && <div style={overlayStyles} onClick={closeMenu} />}
+    </header>
   );
 };
 
-export default Home;
+const BurgerIcon = () => (
+  <div style={burgerIconStyles}>
+    <div style={barStyles}></div>
+    <div style={barStyles}></div>
+    <div style={barStyles}></div>
+  </div>
+);
+
+const CrossIcon = () => (
+  <div style={crossIconStyles}>✕</div>
+);
+
+const TransactionIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23"></line>
+    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+  </svg>
+);
+
+const ReportIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="16" y1="13" x2="8" y2="13"></line>
+    <line x1="16" y1="17" x2="8" y2="17"></line>
+    <polyline points="10 9 9 9 8 9"></polyline>
+  </svg>
+);
+
+// Styles
+const headerStyles = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  position: 'sticky',
+  top: '0',
+  height: '60px',
+  width: '100%',
+  backgroundColor: '#f8f9fa',
+  zIndex: 1000,
+  padding: '0 1rem',
+};
+
+const logoStyles = {
+  position: 'absolute',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  fontSize: '1.2rem',
+  fontWeight: 'bold',
+  color: '#000',
+  cursor: 'pointer',
+};
+
+const burgerButtonStyles = {
+  cursor: 'pointer',
+  zIndex: 1001,
+};
+
+const burgerIconStyles = {
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+  width: '24px',
+  height: '18px',
+};
+
+const barStyles = {
+  width: '24px',
+  height: '3px',
+  backgroundColor: '#373a47',
+  margin: '2px 0',
+};
+
+const crossIconStyles = {
+  fontSize: '24px',
+  color: '#bdc3c7',
+  cursor: 'pointer',
+};
+
+const userInfoStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  padding: '10px 0',
+  borderBottom: '1px solid #e0e0e0',
+  marginBottom: '10px',
+};
+
+const avatarStyles = {
+  width: '40px',
+  height: '40px',
+  borderRadius: '50%',
+  marginRight: '10px',
+};
+
+const usernameStyles = {
+  fontSize: '1rem',
+  fontWeight: 'bold',
+};
+
+const authContainerStyles = {
+  marginTop: 'auto',
+  padding: '20px 0',
+  display: 'flex',
+  justifyContent: 'space-between',
+};
+
+const buttonBaseStyles = {
+  padding: '10px 20px',
+  borderRadius: '5px',
+  textDecoration: 'none',
+  textAlign: 'center',
+  flex: 1,
+  margin: '0 5px',
+};
+
+const loginButtonStyles = {
+  ...buttonBaseStyles,
+  border: '1px solid #007bff',
+  color: '#007bff',
+};
+
+const registerButtonStyles = {
+  ...buttonBaseStyles,
+  backgroundColor: '#007bff',
+  color: 'white',
+};
+
+const iconContainerStyles = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  alignItems: 'center',
+  marginLeft: 'auto',
+};
+
+const iconStyles = {
+  cursor: 'pointer',
+  marginLeft: '15px',
+};
+
+const overlayStyles = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: 'rgba(0, 0, 0, 0.3)',
+  zIndex: 1100,
+};
+
+const menuStyles = {
+  bmBurgerButton: {
+    display: 'none',
+  },
+  bmCrossButton: {
+    display: 'none',
+  },
+  bmMenuWrap: {
+    position: 'fixed',
+    height: '100%',
+    left: 0,
+    top: 0,
+    zIndex: 1200,
+  },
+  bmMenu: {
+    background: '#f8f9fa',
+    padding: '2.5em 1.5em 0',
+    fontSize: '1.15em',
+  },
+  bmItemList: {
+    color: '#373a47',
+    padding: '0.8em',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  bmItem: {
+    display: 'inline-block',
+    textDecoration: 'none',
+    color: '#373a47',
+    marginBottom: '15px',
+    fontSize: '1.2rem',
+  },
+  bmOverlay: {
+    display: 'none',
+  },
+};
+
+const menuCloseButtonStyles = {
+  position: 'absolute',
+  right: '15px',
+  top: '15px',
+  cursor: 'pointer',
+  zIndex: 1300,
+};
+
+const menuItemStyles = {
+  marginBottom: '15px',
+  fontSize: '1.2rem',
+};
+
+export default Header;

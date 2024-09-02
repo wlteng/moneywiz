@@ -40,38 +40,119 @@ const Header = ({ user }) => {
   ];
 
   return (
-    <header style={headerStyles}>
-      <div style={burgerButtonStyles} onClick={toggleMenu}>
-        <BurgerIcon />
-      </div>
-      <div style={logoStyles} onClick={() => navigate('/')}>MoneyWiz</div>
-      {user && (
-        <div style={iconContainerStyles}>
-          <div style={iconStyles} onClick={() => navigate('/transactions')}>
-            <TransactionIcon />
-          </div>
-          <div style={iconStyles} onClick={() => navigate('/report')}>
-            <ReportIcon />
-          </div>
+    <>
+      <header style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        right: '0',
+        height: '60px',
+        backgroundColor: '#f8f9fa',
+        zIndex: 1000,
+        padding: '0 1rem',
+      }}>
+        <div style={{ cursor: 'pointer', zIndex: 1001 }} onClick={toggleMenu}>
+          <BurgerIcon />
         </div>
-      )}
+        <div style={{
+          fontSize: '1.2rem',
+          fontWeight: 'bold',
+          color: '#000',
+          cursor: 'pointer',
+        }} onClick={() => navigate('/')}>MoneyWiz</div>
+        {user && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+          }}>
+            <div style={{ cursor: 'pointer', marginLeft: '15px' }} onClick={() => navigate('/transactions')}>
+              <TransactionIcon />
+            </div>
+            <div style={{ cursor: 'pointer', marginLeft: '15px' }} onClick={() => navigate('/report')}>
+              <ReportIcon />
+            </div>
+          </div>
+        )}
+      </header>
       <Menu 
         left
         isOpen={isMenuOpen}
         onStateChange={handleStateChange}
         customBurgerIcon={false}
-        customCrossIcon={<CrossIcon />}
-        styles={menuStyles}
+        customCrossIcon={false}
+        styles={{
+          bmBurgerButton: {
+            display: 'none',
+          },
+          bmCrossButton: {
+            display: 'none',
+          },
+          bmMenuWrap: {
+            position: 'fixed',
+            height: '100%',
+            left: 0,
+            top: 0,
+            zIndex: 1200,
+          },
+          bmMenu: {
+            background: '#f8f9fa',
+            padding: '2.5em 1.5em 0',
+            fontSize: '1.15em',
+          },
+          bmItemList: {
+            color: '#373a47',
+            padding: '0.8em',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+          bmItem: {
+            display: 'inline-block',
+            textDecoration: 'none',
+            color: '#373a47',
+            marginBottom: '15px',
+            fontSize: '1.2rem',
+          },
+          bmOverlay: {
+            background: 'rgba(0, 0, 0, 0.3)',
+            zIndex: 1100,
+          },
+        }}
         overlayClassName={'overlay'}
       >
+        <div style={{
+          position: 'absolute',
+          right: '15px',
+          top: '15px',
+          cursor: 'pointer',
+          zIndex: 1300,
+        }} onClick={closeMenu}>
+          <CrossIcon />
+        </div>
         {user && (
-          <div style={userInfoStyles}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '10px 0',
+            borderBottom: '1px solid #e0e0e0',
+            marginBottom: '10px',
+          }}>
             <img 
               src={user.photoURL || '/default-avatar.png'} 
               alt="User avatar" 
-              style={avatarStyles}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                marginRight: '10px',
+              }}
             />
-            <span style={usernameStyles}>{user.displayName || user.email}</span>
+            <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
+              {user.displayName || user.email}
+            </span>
           </div>
         )}
         {menuItems.map((item) => (
@@ -81,23 +162,52 @@ const Header = ({ user }) => {
               to={item.path} 
               className="bm-item" 
               onClick={() => handleNavigation(item.path)}
+              style={{
+                marginBottom: '15px',
+                fontSize: '1.2rem',
+                textDecoration: 'none',
+                color: '#373a47',
+              }}
             >
               {item.label}
             </Link>
           )
         ))}
         {!user && (
-          <div style={authContainerStyles}>
+          <div style={{
+            marginTop: 'auto',
+            padding: '20px 0',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}>
             <Link 
               to="/login" 
-              style={loginButtonStyles} 
+              style={{
+                padding: '10px 20px',
+                borderRadius: '5px',
+                textDecoration: 'none',
+                textAlign: 'center',
+                flex: 1,
+                margin: '0 5px',
+                border: '1px solid #007bff',
+                color: '#007bff',
+              }}
               onClick={() => handleNavigation('/login')}
             >
               Login
             </Link>
             <Link 
               to="/register" 
-              style={registerButtonStyles} 
+              style={{
+                padding: '10px 20px',
+                borderRadius: '5px',
+                textDecoration: 'none',
+                textAlign: 'center',
+                flex: 1,
+                margin: '0 5px',
+                backgroundColor: '#007bff',
+                color: 'white',
+              }}
               onClick={() => handleNavigation('/register')}
             >
               Register
@@ -105,21 +215,54 @@ const Header = ({ user }) => {
           </div>
         )}
       </Menu>
-      {isMenuOpen && <div style={overlayStyles} onClick={closeMenu} />}
-    </header>
+      {isMenuOpen && <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.3)',
+        zIndex: 1100,
+      }} onClick={closeMenu} />}
+    </>
   );
 };
 
 const BurgerIcon = () => (
-  <div style={burgerIconStyles}>
-    <div style={barStyles}></div>
-    <div style={barStyles}></div>
-    <div style={barStyles}></div>
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    width: '24px',
+    height: '18px',
+  }}>
+    <div style={{
+      width: '24px',
+      height: '3px',
+      backgroundColor: '#373a47',
+      margin: '2px 0',
+    }}></div>
+    <div style={{
+      width: '24px',
+      height: '3px',
+      backgroundColor: '#373a47',
+      margin: '2px 0',
+    }}></div>
+    <div style={{
+      width: '24px',
+      height: '3px',
+      backgroundColor: '#373a47',
+      margin: '2px 0',
+    }}></div>
   </div>
 );
 
 const CrossIcon = () => (
-  <div style={crossIconStyles}>✕</div>
+  <div style={{
+    fontSize: '24px',
+    color: '#bdc3c7',
+    cursor: 'pointer',
+  }}>✕</div>
 );
 
 const TransactionIcon = () => (
@@ -140,163 +283,3 @@ const ReportIcon = () => (
 );
 
 export default Header;
-
-// Styles
-const headerStyles = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  position: 'sticky',
-  top: '0',
-  height: '60px',
-  width: '100%',
-  backgroundColor: '#f8f9fa',
-  zIndex: 1000,
-  padding: '0 1rem',
-};
-
-const logoStyles = {
-  flexGrow: 1,
-  textAlign: 'center',
-  fontSize: '1.5rem',
-  fontWeight: 'bold',
-  color: '#000',
-  cursor: 'pointer',
-};
-
-const burgerButtonStyles = {
-  cursor: 'pointer',
-};
-
-const burgerIconStyles = {
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-  width: '24px',
-  height: '18px',
-};
-
-const barStyles = {
-  width: '24px',
-  height: '3px',
-  backgroundColor: '#373a47',
-  margin: '2px 0',
-};
-
-const crossIconStyles = {
-  fontSize: '24px',
-  color: '#bdc3c7',
-  cursor: 'pointer',
-};
-
-const userInfoStyles = {
-  display: 'flex',
-  alignItems: 'center',
-  padding: '20px 0',
-  borderBottom: '1px solid #e0e0e0',
-  marginBottom: '20px',
-};
-
-const avatarStyles = {
-  width: '40px',
-  height: '40px',
-  borderRadius: '50%',
-  marginRight: '10px',
-};
-
-const usernameStyles = {
-  fontSize: '1rem',
-  fontWeight: 'bold',
-};
-
-const authContainerStyles = {
-  marginTop: 'auto',
-  padding: '20px 0',
-  display: 'flex',
-  justifyContent: 'space-between',
-};
-
-const buttonBaseStyles = {
-  padding: '10px 20px',
-  borderRadius: '5px',
-  textDecoration: 'none',
-  textAlign: 'center',
-  flex: 1,
-  margin: '0 5px',
-};
-
-const loginButtonStyles = {
-  ...buttonBaseStyles,
-  border: '1px solid #007bff',
-  color: '#007bff',
-};
-
-const registerButtonStyles = {
-  ...buttonBaseStyles,
-  backgroundColor: '#007bff',
-  color: 'white',
-};
-
-const iconContainerStyles = {
-  display: 'flex',
-  justifyContent: 'flex-end',
-  alignItems: 'center',
-};
-
-const iconStyles = {
-  cursor: 'pointer',
-  marginLeft: '15px',
-};
-
-const overlayStyles = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.3)',
-  zIndex: 1000,
-};
-
-const menuStyles = {
-  bmBurgerButton: {
-    display: 'none',
-  },
-  bmCrossButton: {
-    height: '24px',
-    width: '24px',
-    top: '15px',
-    right: '15px',
-  },
-  bmCross: {
-    background: '#bdc3c7',
-  },
-  bmMenuWrap: {
-    position: 'fixed',
-    height: '100%',
-    left: 0,
-    top: 0,
-    zIndex: 1100,
-  },
-  bmMenu: {
-    background: '#f8f9fa',
-    padding: '2.5em 1.5em 0',
-    fontSize: '1.15em',
-  },
-  bmItemList: {
-    color: '#373a47',
-    padding: '0.8em',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  bmItem: {
-    display: 'inline-block',
-    textDecoration: 'none',
-    color: '#373a47',
-    marginBottom: '10px',
-    fontSize: '1.2rem',
-  },
-  bmOverlay: {
-    display: 'none',
-  },
-};
