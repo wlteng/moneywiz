@@ -193,7 +193,20 @@ const InitialSetup = () => {
 
   return (
     <Container className="mt-4">
-      <h2>Initial Setup</h2>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>Initial Setup</h2>
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          style={{
+            padding: '10px 20px',
+            fontSize: '16px',
+            borderRadius: '4px',
+          }}
+        >
+          Save All Settings
+        </Button>
+      </div>
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
@@ -216,7 +229,7 @@ const InitialSetup = () => {
           </Form.Select>
         </Form.Group>
 
-       <div className="d-flex justify-content-between align-items-center">
+        <div className="d-flex justify-content-between align-items-center">
           <h3 className="mt-3">Categories</h3>
           <Button onClick={() => setShowCategoryModal(true)}>
             <FaPlus />
@@ -228,11 +241,10 @@ const InitialSetup = () => {
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div
                   style={{
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: category.color,
+                    width: '30px',
+                    height: '30px',
+                    backgroundColor: `${category.color}B3`,
                     marginRight: '10px',
-                    border: '1px solid #000'
                   }}
                 />
                 {category.name}
@@ -295,21 +307,6 @@ const InitialSetup = () => {
             </ListGroup.Item>
           ))}
         </ListGroup>
-
-        <div style={{ textAlign: 'center', marginTop: '20px', marginBottom: '20px' }}>
-          <Button
-            variant="primary"
-            onClick={handleSave}
-            style={{
-              width: '100%',
-              padding: '10px 20px',
-              fontSize: '16px',
-              borderRadius: '4px',
-            }}
-          >
-            Save All Settings
-          </Button>
-        </div>
       </Form>
 
       {/* Modals */}
@@ -507,15 +504,15 @@ const InitialSetup = () => {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowColorPicker(false)}>Close</Button>
-                  <Button variant="primary" onClick={() => {
-  const updatedCategories = categories.map(category => 
-    category.id === selectedCategoryForColor?.id ? { ...category, color: selectedCategoryForColor.color } : category
-  );
-  setCategories(updatedCategories);
-  setShowColorPicker(false);
-}}>
-  Save Color
-</Button>
+          <Button variant="primary" onClick={() => {
+            const updatedCategories = categories.map(category => 
+              category.id === selectedCategoryForColor?.id ? { ...category, color: selectedCategoryForColor.color } : category
+            );
+            setCategories(updatedCategories);
+            setShowColorPicker(false);
+          }}>
+            Save Color
+          </Button>
         </Modal.Footer>
       </Modal>
     </Container>

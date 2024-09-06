@@ -58,7 +58,7 @@ const TransactionMobile = ({
       case 'e-wallet': return details?.name || 'E-Wallet';
       case 'credit card':
       case 'debit card':
-        return `${type}: ${details?.last4 || 'XXXX'}`;
+        return `${type}: ${details.bank}-${details?.last4 || 'XXXX'}`;
       default: return type;
     }
   };

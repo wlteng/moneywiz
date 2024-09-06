@@ -37,9 +37,9 @@ const KeyboardR = ({
       case 'Cash':
         return 'Cash';
       case 'Credit Card':
-        return `credit-${method.details.last4}`;
+        return `credit-${method.details.bank}-${method.details.last4}`;
       case 'Debit Card':
-        return `debit-${method.details.last4}`;
+        return `debit-${method.details.bank}-${method.details.last4}`;
       case 'E-Wallet':
         return method.details.name;
       default:
