@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Form, Button, InputGroup, Row, Col, Alert } from 'react-bootstrap';
-import { getCurrencyDecimals } from '../data/General';
+import { getCurrencyDecimals, currencyList } from '../data/General';
 import { addDoc, collection, doc, getDoc, query, orderBy, limit, getDocs, updateDoc, where } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import { useMediaQuery } from 'react-responsive';
@@ -237,13 +237,22 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   };
 
   const handleAmountChange = (categoryId, value) => {
-    const numericValue = value.replace(/[^\d]/g, '');
-    const formattedValue = (parseFloat(numericValue) / 100).toFixed(2);
-    setAmounts(prevAmounts => ({
-      ...prevAmounts,
-      [categoryId]: formattedValue
-    }));
-  };
+      const numericValue = value.replace(/[^\d]/g, '');
+      const decimals = getCurrencyDecimals(fromCurrency);
+      
+      let formattedValue;
+      if (decimals === 0) {
+        formattedValue = numericValue;
+      } else {
+        const factor = Math.pow(10, decimals);
+        formattedValue = (parseFloat(numericValue) / factor).toFixed(decimals);
+      }
+
+      setAmounts(prevAmounts => ({
+        ...prevAmounts,
+        [categoryId]: formattedValue
+      }));
+    };
 
   const handleFocus = (categoryId) => {
     if (inputRefs.current[categoryId]) {
@@ -530,70 +539,52 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
       </div>
 
       {(isReordering ? tempFieldOrder : fieldOrder).map((categoryId, index) => {
-        const category = userCategories.find(cat => cat.id === categoryId);
-        if (!category) return null;
-        return (
-          <Row key={categoryId} className="mb-3">
-            <Col xs={12}>
-              <InputGroup>
-                {isReordering && (
-                  <>
-                    <Button
-                      variant="outline-secondary"
-                      onClick={() => moveField(index, -1)}
-                      disabled={index === 0}
-                    >
-                      <FaArrowUp />
-                    </Button>
-                    <Button
-                      variant="outline-secondary"
-                      onClick={() => moveField(index, 1)}
-                      disabled={index === tempFieldOrder.length - 1}
-                    >
-                      <FaArrowDown />
-                    </Button>
-                  </>
-                )}
-                
-                <Form.Control
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={amounts[category.id] || ''}
-                  onChange={(e) => handleAmountChange(category.id, e.target.value)}
-                  onFocus={() => handleFocus(category.id)}
-                  ref={(el) => inputRefs.current[category.id] = el}
-                  placeholder={`${mainCurrency} ${formatCurrency(monthlyTotals[category.id] || 0, mainCurrency)} `}
-                  style={isMobile ? mobileStyles.input : {}}
-                  disabled={isReordering}
-                />
-                <Button
-                    variant="primary"
-                    style={{ 
-                      ...categoryButtonStyle,
-                      backgroundColor: `${category.color}B3`,
-                    }}
-                    onClick={() => handleQuickSubmit(category.id, category.name)}
-                    onMouseDown={() => handleMouseDown(category.id)}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseLeave}
-                    disabled={isReordering}
-                  >
-                    {category.name}
-                  </Button>
-              </InputGroup>
-              {amounts[category.id] && !isReordering && (
-                <small className="text-muted">
-                  {formatCurrency(amounts[category.id], fromCurrency)} {fromCurrency} = 
-                  {convertedAmounts[category.id] !== undefined
-                    ? ` ${formatCurrency(convertedAmounts[category.id], mainCurrency)} ${mainCurrency}`
-                    : ' Converting...'}
-                </small>
-              )}
-            </Col>
-          </Row>
-        );
-      })}
+              const category = userCategories.find(cat => cat.id === categoryId);
+              if (!category) return null;
+              const monthlyTotal = monthlyTotals[categoryId] || 0;
+              return (
+                <Row key={categoryId} className="mb-3">
+                  <Col xs={12}>
+                    <InputGroup>
+                      {/* ... reordering buttons */}
+                      <Form.Control
+                        type="text" // Changed from "number" to "text"
+                        inputMode="numeric"
+                        value={amounts[category.id] || ''}
+                        onChange={(e) => handleAmountChange(category.id, e.target.value)}
+                        onFocus={() => handleFocus(category.id)}
+                        ref={(el) => inputRefs.current[category.id] = el}
+                        placeholder={`${mainCurrency} ${formatCurrency(monthlyTotal, mainCurrency)} `}
+                        style={isMobile ? mobileStyles.input : {}}
+                        disabled={isReordering}
+                      />
+                      <Button
+                        variant="primary"
+                        style={{ 
+                          ...categoryButtonStyle,
+                          backgroundColor: `${category.color}B3`,
+                        }}
+                        onClick={() => handleQuickSubmit(category.id, category.name)}
+                        onMouseDown={() => handleMouseDown(category.id)}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseLeave}
+                        disabled={isReordering}
+                      >
+                        {category.name}
+                      </Button>
+                    </InputGroup>
+                    {amounts[category.id] && !isReordering && (
+                      <small className="text-muted">
+                        {formatCurrency(amounts[category.id], fromCurrency)} {fromCurrency} = 
+                        {convertedAmounts[category.id] !== undefined
+                          ? ` ${formatCurrency(convertedAmounts[category.id], mainCurrency)} ${mainCurrency}`
+                          : ' Converting...'}
+                      </small>
+                    )}
+                  </Col>
+                </Row>
+              );
+            })}
 
       {showSuccess && (
         <div style={{

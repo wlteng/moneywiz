@@ -1,5 +1,5 @@
-{
-  "short_name": "Moneywiz",
+  {
+  "short_name": "Easylog",
   "name": "Financial App Moneywiz",
   "icons": [
     {
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#e4d4cc",
   "background_color": "#ffffff"
 }
