@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConvertedAmount, currencyList } from '../data/General';
+import { currencyList } from '../data/General';
 import { db, storage } from '../services/firebase';
 import { collection, addDoc, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { auth } from '../services/firebase';
 import KeyboardR from './KeyboardR';
+import { convertCurrency } from '../services/conversionService';
 
 const Keyboard = () => {
   const { categoryId } = useParams();
@@ -83,13 +84,18 @@ const Keyboard = () => {
   };
 
   useEffect(() => {
-    const convertCurrency = async () => {
+    const convertAmount = async () => {
       if (amount && toCurrency) {
-        const converted = await getConvertedAmount(parseFloat(amount), fromCurrency, toCurrency);
-        setConvertedAmount(converted.toFixed(2));
+        try {
+          const converted = await convertCurrency(parseFloat(amount), fromCurrency, toCurrency);
+          setConvertedAmount(converted.toFixed(2));
+        } catch (error) {
+          console.error('Error converting currency:', error);
+          // Handle error (e.g., show a message to the user)
+        }
       }
     };
-    convertCurrency();
+    convertAmount();
   }, [amount, fromCurrency, toCurrency]);
 
   useEffect(() => {

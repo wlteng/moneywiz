@@ -38,6 +38,7 @@ const Header = ({ user }) => {
     { path: '/profile', label: 'Profile', requireAuth: true },
     { path: '/settings', label: 'Settings', requireAuth: true },
     { path: '/initial-setup', label: 'Initial Setup', requireAuth: true },
+    { path: '/conversion-rate', label: 'Conversion Rates' },
   ];
 
   return (
@@ -45,7 +46,7 @@ const Header = ({ user }) => {
       <div style={burgerButtonStyles} onClick={toggleMenu}>
         <BurgerIcon />
       </div>
-      <div style={logoStyles}>Easylog</div>
+      <Link to="/" style={logoStyles}>Easylog</Link>
       {user && (
         <div style={iconContainerStyles}>
           <div style={iconStyles} onClick={() => navigate('/transactions')}>
@@ -122,8 +123,6 @@ const CrossIcon = () => (
   <div style={crossIconStyles}>✕</div>
 );
 
-export default Header;
-
 // Styles
 const headerStyles = {
   display: 'flex',
@@ -145,11 +144,12 @@ const logoStyles = {
   fontSize: '1.5rem',
   fontWeight: 'bold',
   color: '#000',
+  textDecoration: 'none',
 };
 
 const burgerButtonStyles = {
   cursor: 'pointer',
-  zIndex: -1099, // Lower than the active menu
+  zIndex: -1099,
 };
 
 const burgerIconStyles = {
@@ -241,7 +241,7 @@ const overlayStyles = {
   right: 0,
   bottom: 0,
   backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  zIndex: -1098, // Lower than the active menu
+  zIndex: -1098,
 };
 
 const menuStyles = {
@@ -262,7 +262,7 @@ const menuStyles = {
     height: '100%',
     left: 0,
     top: 0,
-    zIndex: 1100, // Higher than the overlay and burger icon
+    zIndex: 1100,
   },
   bmMenu: {
     background: '#f8f9fa',
@@ -279,10 +279,12 @@ const menuStyles = {
     display: 'inline-block',
     textDecoration: 'none',
     color: '#373a47',
-    marginBottom: '20px', // Increased gap between menu items
-    fontSize: '1.4rem', // Increased font size for menu labels
+    marginBottom: '20px',
+    fontSize: '1.4rem',
   },
   bmOverlay: {
     background: 'rgba(0, 0, 0, 0.3)',
   },
 };
+
+export default Header;

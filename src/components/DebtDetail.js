@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Button, Form, Modal, Table, Badge } from 'react-bootstrap';
+import { Container, Button, Form, Modal, Table, Badge, Alert } from 'react-bootstrap';
 import { doc, getDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { convertCurrency } from '../services/conversionService';
 
 const DebtDetail = () => {
   const { id } = useParams();
@@ -13,6 +14,11 @@ const DebtDetail = () => {
   const [editedDebt, setEditedDebt] = useState({});
   const [paymentAmount, setPaymentAmount] = useState('');
   const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [convertedAmount, setConvertedAmount] = useState(null);
+  const [convertedRepaymentAmount, setConvertedRepaymentAmount] = useState(null);
+  const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'USD');
 
   useEffect(() => {
     fetchDebt();
@@ -20,21 +26,50 @@ const DebtDetail = () => {
   }, [id]);
 
   const fetchDebt = async () => {
-    const docRef = doc(db, 'debts', id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      setDebt({ id: docSnap.id, ...docSnap.data() });
-      setEditedDebt({ id: docSnap.id, ...docSnap.data() });
-    } else {
-      console.log("No such debt!");
+    setLoading(true);
+    setError('');
+    try {
+      const docRef = doc(db, 'debts', id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const debtData = { id: docSnap.id, ...docSnap.data() };
+        setDebt(debtData);
+        setEditedDebt(debtData);
+        await convertAmounts(debtData);
+      } else {
+        setError("No such debt!");
+      }
+    } catch (err) {
+      console.error("Error fetching debt:", err);
+      setError("Failed to fetch debt details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const convertAmounts = async (debtData) => {
+    try {
+      const convertedAmount = await convertCurrency(debtData.amount, debtData.currency, mainCurrency);
+      setConvertedAmount(convertedAmount);
+
+      const convertedRepayment = await convertCurrency(debtData.repaymentAmount, debtData.currency, mainCurrency);
+      setConvertedRepaymentAmount(convertedRepayment);
+    } catch (err) {
+      console.error("Error converting amounts:", err);
+      setError("Failed to convert currency amounts.");
     }
   };
 
   const fetchTransactions = async () => {
-    const q = query(collection(db, 'debtTransactions'), where("debtId", "==", id));
-    const querySnapshot = await getDocs(q);
-    const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setTransactions(fetchedTransactions);
+    try {
+      const q = query(collection(db, 'debtTransactions'), where("debtId", "==", id));
+      const querySnapshot = await getDocs(q);
+      const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTransactions(fetchedTransactions);
+    } catch (err) {
+      console.error("Error fetching transactions:", err);
+      setError("Failed to fetch transaction history.");
+    }
   };
 
   const handleEdit = async () => {
@@ -42,9 +77,11 @@ const DebtDetail = () => {
       try {
         await updateDoc(doc(db, 'debts', id), editedDebt);
         setDebt(editedDebt);
+        await convertAmounts(editedDebt);
         setShowEditModal(false);
       } catch (error) {
         console.error("Error updating debt: ", error);
+        setError("Failed to update debt.");
       }
     }
   };
@@ -56,6 +93,7 @@ const DebtDetail = () => {
         navigate('/debts');
       } catch (error) {
         console.error("Error deleting debt: ", error);
+        setError("Failed to delete debt.");
       }
     }
   };
@@ -73,10 +111,12 @@ const DebtDetail = () => {
         date: new Date().toISOString()
       });
       setDebt({ ...debt, amount: newAmount });
+      await convertAmounts({ ...debt, amount: newAmount });
       setShowPayModal(false);
       fetchTransactions();
     } catch (error) {
       console.error("Error updating debt: ", error);
+      setError("Failed to process payment.");
     }
   };
 
@@ -93,9 +133,11 @@ const DebtDetail = () => {
         date: new Date().toISOString()
       });
       setDebt({ ...debt, amount: newAmount });
+      await convertAmounts({ ...debt, amount: newAmount });
       fetchTransactions();
     } catch (error) {
       console.error("Error adding interest: ", error);
+      setError("Failed to add interest.");
     }
   };
 
@@ -110,7 +152,9 @@ const DebtDetail = () => {
     }
   };
 
-  if (!debt) return <div>Loading...</div>;
+  if (loading) return <Container className="mt-3"><p>Loading...</p></Container>;
+  if (error) return <Container className="mt-3"><Alert variant="danger">{error}</Alert></Container>;
+  if (!debt) return <Container className="mt-3"><p>Debt not found.</p></Container>;
 
   return (
     <Container>
@@ -119,7 +163,9 @@ const DebtDetail = () => {
       </Button>
       <h2>{debt.oweTo}</h2>
       <p><strong>Amount:</strong> {debt.amount} {debt.currency}</p>
+      <p><strong>Amount (in {mainCurrency}):</strong> {convertedAmount?.toFixed(2)} {mainCurrency}</p>
       <p><strong>Repayment Amount:</strong> {debt.repaymentAmount} {debt.currency}</p>
+      <p><strong>Repayment Amount (in {mainCurrency}):</strong> {convertedRepaymentAmount?.toFixed(2)} {mainCurrency}</p>
       <p><strong>Start Date:</strong> {new Date(debt.date).toLocaleDateString()}</p>
       <p><strong>Interest Rate:</strong> {debt.interestRate}% YEARLY</p>
 
@@ -201,7 +247,7 @@ const DebtDetail = () => {
         <Modal.Body>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Payment Amount</Form.Label>
+              <Form.Label>Payment Amount ({debt.currency})</Form.Label>
               <Form.Control 
                 type="number" 
                 value={paymentAmount} 

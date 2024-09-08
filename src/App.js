@@ -20,6 +20,7 @@ import Settings from './pages/Settings';
 import InitialSetup from './components/InitialSetup';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
+import ConversionRate from './pages/ConversionRate';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -98,6 +99,7 @@ const App = () => {
         <Route path="/report/debts" element={<ProtectedRoute><ReportDebt /></ProtectedRoute>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/conversion-rate" element={<ConversionRate />} />
       </Routes>
     </Router>
   );

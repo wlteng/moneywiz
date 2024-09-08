@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Form, Button, InputGroup, Row, Col, Alert } from 'react-bootstrap';
-import { getConvertedAmount, currencyList, getCurrencyDecimals } from '../data/General';
+import { getCurrencyDecimals } from '../data/General';
 import { addDoc, collection, doc, getDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import { useMediaQuery } from 'react-responsive';
 import { FaTimes } from 'react-icons/fa';
+import { convertCurrency } from '../services/conversionService';
 
 const HomeInput = ({
   userCategories,
   recentPaymentMethods,
   userPaymentMethods,
 }) => {
-  const [amounts, setAmounts] = useState({});  
+  const [amounts, setAmounts] = useState({});
+  const [convertedAmounts, setConvertedAmounts] = useState({});
   const [paymentMethod, setPaymentMethod] = useState({ type: 'Cash', details: {} });
   const [fromCurrency, setFromCurrency] = useState(localStorage.getItem('lastChosenCurrency') || 'SGD');
   const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'MYR');
@@ -35,6 +37,20 @@ const HomeInput = ({
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const convertAmounts = async () => {
+      const converted = {};
+      for (const [categoryId, amount] of Object.entries(amounts)) {
+        if (amount) {
+          converted[categoryId] = await convertCurrency(parseFloat(amount), fromCurrency, mainCurrency);
+        }
+      }
+      setConvertedAmounts(converted);
+    };
+
+    convertAmounts();
+  }, [amounts, fromCurrency, mainCurrency]);
 
   const fetchUserMainCurrency = async (userId) => {
     const userRef = doc(db, 'users', userId);
@@ -63,7 +79,6 @@ const HomeInput = ({
       const favorites = userData.favoriteCurrencies || [];
       setFavoriteCurrencies(favorites);
       
-      // If the current fromCurrency is not in favorites, set it to the first favorite or mainCurrency
       if (!favorites.includes(fromCurrency)) {
         const newCurrency = favorites.length > 0 ? favorites[0] : mainCurrency;
         setFromCurrency(newCurrency);
@@ -114,25 +129,25 @@ const HomeInput = ({
     const amount = parseFloat(amounts[categoryId]);
     if (isNaN(amount)) return;
 
-    const convertedAmount = getConvertedAmount(amount, fromCurrency, mainCurrency).toFixed(2);
-    const now = new Date();
-
-    const transaction = {
-      userId: user.uid,
-      amount: amount.toFixed(2),
-      convertedAmount,
-      paymentMethod,
-      description: "",
-      receipt: null,
-      productImage: null,
-      date: now.toISOString(),
-      fromCurrency,
-      toCurrency: mainCurrency,
-      categoryId,
-      categoryName,
-    };
-
     try {
+      const convertedAmount = await convertCurrency(amount, fromCurrency, mainCurrency);
+      const now = new Date();
+
+      const transaction = {
+        userId: user.uid,
+        amount: amount.toFixed(2),
+        convertedAmount: convertedAmount.toFixed(2),
+        paymentMethod,
+        description: "",
+        receipt: null,
+        productImage: null,
+        date: now.toISOString(),
+        fromCurrency,
+        toCurrency: mainCurrency,
+        categoryId,
+        categoryName,
+      };
+
       await addDoc(collection(db, 'expenses'), transaction);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
@@ -175,14 +190,14 @@ const HomeInput = ({
   const getPaymentMethodColor = (type) => {
     switch (type) {
       case 'E-Wallet':
-        return 'rgba(0, 123, 255, 0.7)'; // primary blue with 0.7 opacity
+        return 'rgba(0, 123, 255, 0.7)';
       case 'Debit Card':
-        return 'rgba(40, 167, 69, 0.7)'; // success green with 0.7 opacity
+        return 'rgba(40, 167, 69, 0.7)';
       case 'Credit Card':
-        return 'rgba(220, 53, 69, 0.7)'; // danger red with 0.7 opacity
+        return 'rgba(220, 53, 69, 0.7)';
       case 'Cash':
       default:
-        return 'rgba(108, 117, 125, 0.7)'; // secondary gray with 0.7 opacity
+        return 'rgba(108, 117, 125, 0.7)';
     }
   };
 
@@ -332,7 +347,10 @@ const HomeInput = ({
             </InputGroup>
             {amounts[category.id] && (
               <small className="text-muted">
-                {formatCurrency(amounts[category.id], fromCurrency)} {fromCurrency} = {formatCurrency(getConvertedAmount(parseFloat(amounts[category.id]), fromCurrency, mainCurrency), mainCurrency)} {mainCurrency}
+                {formatCurrency(amounts[category.id], fromCurrency)} {fromCurrency} = 
+                {convertedAmounts[category.id] ? 
+                  ` ${formatCurrency(convertedAmounts[category.id], mainCurrency)} ${mainCurrency}` : 
+                  ' Converting...'}
               </small>
             )}
           </Col>

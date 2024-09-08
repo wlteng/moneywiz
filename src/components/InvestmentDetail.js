@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Button, Form, Modal, Row, Col } from 'react-bootstrap';
+import { Container, Button, Form, Modal, Row, Col, Alert } from 'react-bootstrap';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { FaChartLine, FaEdit, FaTrash } from 'react-icons/fa';
+import { convertCurrency } from '../services/conversionService';
 
 const InvestmentDetail = () => {
   const { id } = useParams();
@@ -11,20 +12,55 @@ const InvestmentDetail = () => {
   const [investment, setInvestment] = useState(null);
   const [showSellModal, setShowSellModal] = useState(false);
   const [sellAmount, setSellAmount] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [convertedTotalAmount, setConvertedTotalAmount] = useState(null);
+  const [convertedSoldAmount, setConvertedSoldAmount] = useState(null);
+  const [convertedProfit, setConvertedProfit] = useState(null);
+  const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'USD');
 
   useEffect(() => {
     const fetchInvestment = async () => {
-      const docRef = doc(db, 'investments', id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setInvestment({ id: docSnap.id, ...docSnap.data() });
-      } else {
-        console.log("No such investment!");
+      setLoading(true);
+      setError('');
+      try {
+        const docRef = doc(db, 'investments', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const investmentData = { id: docSnap.id, ...docSnap.data() };
+          setInvestment(investmentData);
+          await convertAmounts(investmentData);
+        } else {
+          setError("No such investment!");
+        }
+      } catch (err) {
+        console.error("Error fetching investment:", err);
+        setError("Failed to fetch investment details.");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchInvestment();
   }, [id]);
+
+  const convertAmounts = async (investmentData) => {
+    try {
+      const convertedTotal = await convertCurrency(investmentData.totalAmount, investmentData.currency, mainCurrency);
+      setConvertedTotalAmount(convertedTotal);
+
+      if (investmentData.soldAmount) {
+        const convertedSold = await convertCurrency(investmentData.soldAmount, investmentData.currency, mainCurrency);
+        setConvertedSoldAmount(convertedSold);
+
+        const convertedProfit = await convertCurrency(investmentData.profit, investmentData.currency, mainCurrency);
+        setConvertedProfit(convertedProfit);
+      }
+    } catch (err) {
+      console.error("Error converting amounts:", err);
+      setError("Failed to convert currency amounts.");
+    }
+  };
 
   const handleSell = async () => {
     if (!sellAmount) return;
@@ -39,20 +75,24 @@ const InvestmentDetail = () => {
         profit: profit
       });
 
-      setInvestment({
+      const updatedInvestment = {
         ...investment,
         soldAmount: parseFloat(sellAmount),
         soldDate: sellDate.toISOString(),
         profit: profit
-      });
+      };
+      setInvestment(updatedInvestment);
+      await convertAmounts(updatedInvestment);
 
       setShowSellModal(false);
     } catch (error) {
       console.error("Error updating investment: ", error);
+      setError("Failed to update investment.");
     }
   };
 
   const handleEdit = () => {
+    // Implement edit functionality or navigate to edit page
     console.log("Edit functionality to be implemented");
   };
 
@@ -63,11 +103,14 @@ const InvestmentDetail = () => {
         navigate('/investments');
       } catch (error) {
         console.error("Error deleting investment: ", error);
+        setError("Failed to delete investment.");
       }
     }
   };
 
-  if (!investment) return <div>Loading...</div>;
+  if (loading) return <Container className="mt-3"><p>Loading...</p></Container>;
+  if (error) return <Container className="mt-3"><Alert variant="danger">{error}</Alert></Container>;
+  if (!investment) return <Container className="mt-3"><p>Investment not found.</p></Container>;
 
   return (
     <Container>
@@ -87,15 +130,18 @@ const InvestmentDetail = () => {
       <p><strong>Platform:</strong> {investment.platform}</p>
       <p><strong>Purchase Date:</strong> {new Date(investment.date).toLocaleString()}</p>
       <p><strong>Quantity:</strong> {investment.quantity} {investment.unit}</p>
-      <p><strong>Total Amount:</strong> {investment.totalAmount}</p>
-      <p><strong>Unit Price:</strong> {investment.unitPrice}</p>
+      <p><strong>Total Amount:</strong> {investment.totalAmount} {investment.currency}</p>
+      <p><strong>Total Amount (in {mainCurrency}):</strong> {convertedTotalAmount?.toFixed(2)} {mainCurrency}</p>
+      <p><strong>Unit Price:</strong> {investment.unitPrice} {investment.currency}</p>
       <p><strong>Investment Style:</strong> {investment.style}</p>
 
       {investment.soldAmount && (
         <>
-          <p><strong>Sold Amount:</strong> {investment.soldAmount}</p>
+          <p><strong>Sold Amount:</strong> {investment.soldAmount} {investment.currency}</p>
+          <p><strong>Sold Amount (in {mainCurrency}):</strong> {convertedSoldAmount?.toFixed(2)} {mainCurrency}</p>
           <p><strong>Sold Date:</strong> {new Date(investment.soldDate).toLocaleString()}</p>
-          <p><strong>Profit/Loss:</strong> {investment.profit > 0 ? `+${investment.profit}` : investment.profit}</p>
+          <p><strong>Profit/Loss:</strong> {investment.profit > 0 ? `+${investment.profit}` : investment.profit} {investment.currency}</p>
+          <p><strong>Profit/Loss (in {mainCurrency}):</strong> {convertedProfit > 0 ? `+${convertedProfit.toFixed(2)}` : convertedProfit.toFixed(2)} {mainCurrency}</p>
         </>
       )}
 
@@ -126,7 +172,7 @@ const InvestmentDetail = () => {
         <Modal.Body>
           <Form>
             <Form.Group>
-              <Form.Label>Sell Amount</Form.Label>
+              <Form.Label>Sell Amount ({investment.currency})</Form.Label>
               <Form.Control 
                 type="number" 
                 value={sellAmount} 
