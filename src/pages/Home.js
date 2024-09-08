@@ -92,7 +92,7 @@ const Home = ({ user }) => {
             border-radius: 1rem !important;
           }
           .form-control::placeholder {
-            
+            color: #cccccc;
           }
         `}
       </style>

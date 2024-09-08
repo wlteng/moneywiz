@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { Container, Form, Button, Alert } from 'react-bootstrap';
-import { FaGoogle } from 'react-icons/fa';
+import { Container, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { FaArrowLeft } from 'react-icons/fa';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -28,16 +28,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      navigate('/');
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
   const handleForgotPassword = async () => {
     if (!email) {
       setError('Please enter your email address.');
@@ -51,42 +41,65 @@ const LoginPage = () => {
     }
   };
 
+  const inputStyle = {
+    height: '50px',
+    fontSize: '1.1rem'
+  };
+
   return (
-    <Container className="mt-5">
-      <h2>Login</h2>
-      {error && <Alert variant="danger">{error}</Alert>}
-      {message && <Alert variant="success">{message}</Alert>}
-      <Form onSubmit={handleEmailLogin}>
-        <Form.Group className="mb-3">
-          <Form.Label>Email</Form.Label>
-          <Form.Control 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-          />
-        </Form.Group>
-        <Form.Group className="mb-3">
-          <Form.Label>Password</Form.Label>
-          <Form.Control 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-          />
-        </Form.Group>
-        <Button variant="primary" type="submit" className="w-100 mb-3">
-          Login
-        </Button>
-      </Form>
-      <Button variant="link" onClick={handleForgotPassword} className="mb-3">
-        Forgot Password?
-      </Button>
-      <Button variant="outline-primary" onClick={handleGoogleLogin} className="w-100">
-        <FaGoogle className="me-2" />
-        Login with Google
-      </Button>
-    </Container>
+    <div style={{ backgroundColor: '#e4d4cc', minHeight: '100vh', paddingTop: '20px' }}>
+      <Container>
+        <Row className="justify-content-center">
+          <Col md={6}>
+            <Button 
+              variant="link" 
+              className="mb-3 p-0" 
+              onClick={() => navigate('/')} 
+              style={{ 
+                fontSize: '1.1rem', 
+                color: 'rgb(193, 129, 98)', 
+                textDecoration: 'none' 
+              }}
+            >
+              <FaArrowLeft /> Back
+            </Button>
+            <div className="bg-white p-4 rounded shadow">
+              <h2 className="text-center mb-4" style={{ fontSize: '2rem' }}>Login to Easylog</h2>
+              {error && <Alert variant="danger">{error}</Alert>}
+              {message && <Alert variant="success">{message}</Alert>}
+              <Form onSubmit={handleEmailLogin}>
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontSize: '1.1rem' }}>Email</Form.Label>
+                  <Form.Control 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    required 
+                    style={inputStyle}
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontSize: '1.1rem' }}>Password</Form.Label>
+                  <Form.Control 
+                    type="password" 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    required 
+                    style={inputStyle}
+                  />
+                </Form.Group>
+                <Button variant="primary" type="submit" className="w-100 mb-3" style={{ height: '50px', fontSize: '1.1rem' }}>
+                  Login
+                </Button>
+              </Form>
+              <Button variant="link" onClick={handleForgotPassword} className="w-100" style={{ fontSize: '1.1rem' }}>
+                Forgot Password?
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </Container>
+    </div>
   );
 };
 

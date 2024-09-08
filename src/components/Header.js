@@ -227,6 +227,7 @@ const iconContainerStyles = {
   justifyContent: 'flex-end',
   alignItems: 'center',
   marginLeft: 'auto',
+  zIndex: -1098,
 };
 
 const iconStyles = {
@@ -266,7 +267,7 @@ const menuStyles = {
   },
   bmMenu: {
     background: '#f8f9fa',
-    padding: '2.5em 1.5em 0',
+    padding: '2.5em 0 0 0 ',
     fontSize: '1.15em',
   },
   bmItemList: {
@@ -278,12 +279,13 @@ const menuStyles = {
   bmItem: {
     display: 'inline-block',
     textDecoration: 'none',
-    color: '#373a47',
+    color: '#919191',
     marginBottom: '20px',
     fontSize: '1.4rem',
+    fontWeight:500,
   },
   bmOverlay: {
-    background: 'rgba(0, 0, 0, 0.3)',
+    background: 'rgba(0, 0, 0, 0)',
   },
 };
 

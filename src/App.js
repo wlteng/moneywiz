@@ -21,6 +21,7 @@ import InitialSetup from './components/InitialSetup';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import ConversionRate from './pages/ConversionRate';
+import NonLoginHome from './components/NonLoginHome';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -71,7 +72,7 @@ const App = () => {
     
     useEffect(() => {
       if (!user) {
-        navigate('/profile', { replace: true });
+        navigate('/', { replace: true });
       }
     }, [user, navigate]);
 
@@ -80,9 +81,9 @@ const App = () => {
 
   return (
     <Router>
-      <Header user={user} />
+      {user && <Header user={user} />}
       <Routes>
-        <Route path="/" element={<Home user={user} />} />
+        <Route path="/" element={user ? <Home user={user} /> : <NonLoginHome />} />
         <Route path="/keyboard/:categoryId" element={<ProtectedRoute><Keyboard /></ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
         <Route path="/transaction/:transactionId" element={<ProtectedRoute><SingleTransaction /></ProtectedRoute>} />
