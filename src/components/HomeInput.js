@@ -9,6 +9,7 @@ import { IoMdMove } from 'react-icons/io';
 import { convertCurrency } from '../services/conversionService';
 import { useNavigate } from 'react-router-dom';
 
+
 const HomeInput = ({ userCategories, userPaymentMethods }) => {
   const [amounts, setAmounts] = useState({});
   const [convertedAmounts, setConvertedAmounts] = useState({});
@@ -27,11 +28,42 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   const [recentPaymentMethods, setRecentPaymentMethods] = useState([]);
   const navigate = useNavigate();
   const [longPressTimer, setLongPressTimer] = useState(null);
+  const [monthlyTotals, setMonthlyTotals] = useState({});
 
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const paymentMethodsRef = useRef(null);
   const inputRefs = useRef({});
 
+  const fetchMonthlyTotals = useCallback(async (userId) => {
+    try {
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const q = query(
+        collection(db, 'expenses'),
+        where('userId', '==', userId),
+        where('date', '>=', firstDayOfMonth.toISOString()),
+        where('date', '<=', lastDayOfMonth.toISOString())
+      );
+
+      const querySnapshot = await getDocs(q);
+      const totals = {};
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (!totals[data.categoryId]) {
+          totals[data.categoryId] = 0;
+        }
+        totals[data.categoryId] += parseFloat(data.convertedAmount);
+      });
+
+      setMonthlyTotals(totals);
+    } catch (err) {
+      console.error("Error fetching monthly totals:", err);
+      setError("Failed to fetch monthly totals");
+    }
+  }, []);
 
   const fetchUserMainCurrency = useCallback(async (userId) => {
     try {
@@ -126,6 +158,22 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   }, [userCategories]);
 
   useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged((user) => {
+    if (user) {
+      setUser(user);
+      fetchUserMainCurrency(user.uid);
+      fetchRecentTransactions(user.uid);
+      fetchFavoriteCurrencies(user.uid);
+      fetchFieldOrder(user.uid);
+      fetchRecentPaymentMethods(user.uid);
+      fetchMonthlyTotals(user.uid);  // Add this line
+    }
+    setLoading(false);
+  });
+  return () => unsubscribe();
+}, [fetchUserMainCurrency, fetchRecentTransactions, fetchFavoriteCurrencies, fetchFieldOrder, fetchRecentPaymentMethods, fetchMonthlyTotals]);
+
+  useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
@@ -180,7 +228,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
       setLongPressTimer(null);
     }
   };
-  
+
   const formatCurrency = (value, currency) => {
     const numericValue = parseFloat(value);
     if (isNaN(numericValue)) return '';
@@ -506,6 +554,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
                     </Button>
                   </>
                 )}
+                
                 <Form.Control
                   type="number"
                   inputMode="decimal"
@@ -514,7 +563,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
                   onChange={(e) => handleAmountChange(category.id, e.target.value)}
                   onFocus={() => handleFocus(category.id)}
                   ref={(el) => inputRefs.current[category.id] = el}
-                  placeholder={`Enter amount for ${category.name}`}
+                  placeholder={`${mainCurrency} ${formatCurrency(monthlyTotals[category.id] || 0, mainCurrency)} `}
                   style={isMobile ? mobileStyles.input : {}}
                   disabled={isReordering}
                 />
