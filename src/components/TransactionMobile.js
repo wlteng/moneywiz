@@ -54,12 +54,15 @@ const TransactionMobile = ({
     if (!paymentMethod || !paymentMethod.type) return 'Unknown';
     const { type, details } = paymentMethod;
     switch (type.toLowerCase()) {
-      case 'cash': return 'Cash';
-      case 'e-wallet': return details?.name || 'E-Wallet';
+      case 'cash':
+        return 'Cash';
+      case 'e-wallet':
+        return details?.name || 'E-Wallet';
       case 'credit card':
       case 'debit card':
-        return `${type}: ${details.bank}-${details?.last4 || 'XXXX'}`;
-      default: return type;
+        return `${details.bank}-${details?.last4 || 'XXXX'}`;
+      default:
+        return type;
     }
   };
 

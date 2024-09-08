@@ -156,7 +156,6 @@ const SingleTransactionEdit = () => {
     }));
   };
 
-  // Modified: Updated getPaymentMethodTag function
   const getPaymentMethodTag = (method) => {
     if (!method || !method.type) return 'Unknown';
 
@@ -222,7 +221,7 @@ const SingleTransactionEdit = () => {
   }
 
   return (
-    <Container className="mt-4">
+    <Container className="mt-4 pb-5">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <Button variant="outline-primary" onClick={() => navigate(`/transaction/${transactionId}`)}>
           <FaArrowLeft /> Back
@@ -311,7 +310,6 @@ const SingleTransactionEdit = () => {
 
         <Form.Group className="mb-3">
           <Form.Label>Payment Method</Form.Label>
-          {/* Modified: Added padding-bottom to the payment method sliding section */}
           <div className="d-flex overflow-auto mb-2 pb-2" style={{ paddingBottom: '10px' }}>
             {uniquePaymentMethods.map((method, index) => (
               <Button
@@ -325,7 +323,7 @@ const SingleTransactionEdit = () => {
               </Button>
             ))}
           </div>
-          <div className="selected-payment-method mt-2 p-2 border rounded">
+          <div className="selected-payment-method mt-2 p-2 border rounded" style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}>
             Selected: {getPaymentMethodTag(editedTransaction.paymentMethod)}
           </div>
         </Form.Group>

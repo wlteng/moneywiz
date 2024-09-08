@@ -191,6 +191,18 @@ const InitialSetup = () => {
     }
   };
 
+  const getPaymentMethodDisplay = (method) => {
+    if (method.type === 'E-Wallet') return method.details.name;
+    if (method.type === 'Credit Card') {
+      return `${method.details.bank} - ${method.details.last4} - ${method.details.name || 'Card'}`;
+    }
+    if (method.type === 'Debit Card') {
+      return `${method.details.bank} - ${method.details.last4}`;
+    }
+    return method.type;
+  };
+
+
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -270,10 +282,9 @@ const InitialSetup = () => {
         <ListGroup className="mb-3">
           {paymentMethods.map((method, index) => (
             <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-              <div>
-                <Badge bg={getPaymentMethodBadgeColor(method.type)}>{method.type}</Badge> 
-                {method.details.last4 ? ` ${method.details.last4} - ${method.details.bank}` : ` ${method.details.name}`}
-              </div>
+              <Badge bg={getPaymentMethodBadgeColor(method.type)}>
+                {getPaymentMethodDisplay(method)}
+              </Badge>
               <div>
                 <Button variant="light" size="sm" onClick={() => handleEditPaymentMethod(index)} className="me-2">
                   <FaEdit />
