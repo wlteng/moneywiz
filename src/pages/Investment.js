@@ -105,11 +105,50 @@ const Investment = () => {
         return b.date - a.date;
       }
     });
-  
+
+  const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
+    <Button
+      ref={ref}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick(e);
+      }}
+      variant="link"
+      style={{ color: '#0d6efd', border: 'none', padding: '0.375rem 0.75rem', fontSize: '1.5rem' }}
+    >
+      {children}
+    </Button>
+  ));
 
   return (
-    <Container>
-      <div className="d-flex justify-content-between align-items-center my-4">
+    <Container fluid={isMobile} className={isMobile ? 'px-0' : ''}>
+      <style>
+        {`
+          .dropdown-toggle::after {
+            display: none;
+          }
+          .amount-display {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+          }
+          .amount-input {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: right;
+            border: none;
+            background-color: transparent;
+            padding: 0;
+            margin: 0;
+          }
+          .amount-qty {
+            font-size: 0.8rem;
+            color: grey;
+            margin-top: -5px;
+          }
+        `}
+      </style>
+      <div className={`d-flex justify-content-between align-items-center mt-2 ${isMobile ? 'px-2' : ''}`}>
         <h2>Investments</h2>
         <div>
           <Button variant="primary" onClick={() => setShowForm(true)} className="me-2">
@@ -124,14 +163,13 @@ const Investment = () => {
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? (
-        <p>Loading investments...</p>
+        <p className={isMobile ? 'px-3' : ''}>Loading investments...</p>
       ) : (
         <>
-          <div className="d-flex justify-content-end mb-3">
+          <div className={`d-flex justify-content-end ${isMobile ? '' : ''}`}>
             <Dropdown className="me-2">
-              <Dropdown.Toggle variant="outline-secondary">
+              <Dropdown.Toggle as={CustomToggle} id="dropdown-sort">
                 <FaSort />
-                {!isMobile && ` ${sortBy === 'date' ? 'Date' : 'Amount'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setSortBy('date')}>Date</Dropdown.Item>
@@ -139,9 +177,8 @@ const Investment = () => {
               </Dropdown.Menu>
             </Dropdown>
             <Dropdown className="me-2">
-              <Dropdown.Toggle variant="outline-secondary">
+              <Dropdown.Toggle as={CustomToggle} id="dropdown-currency">
                 <FaDollarSign />
-                {!isMobile && ` ${filterCurrency || 'All Currencies'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setFilterCurrency('')}>All Currencies</Dropdown.Item>
@@ -151,9 +188,8 @@ const Investment = () => {
               </Dropdown.Menu>
             </Dropdown>
             <Dropdown className="me-2">
-              <Dropdown.Toggle variant="outline-secondary">
+              <Dropdown.Toggle as={CustomToggle} id="dropdown-platform">
                 <FaFilter />
-                {!isMobile && ` ${filterPlatform || 'All Platforms'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setFilterPlatform('')}>All Platforms</Dropdown.Item>
@@ -163,9 +199,8 @@ const Investment = () => {
               </Dropdown.Menu>
             </Dropdown>
             <Dropdown>
-              <Dropdown.Toggle variant="outline-secondary">
+              <Dropdown.Toggle as={CustomToggle} id="dropdown-type">
                 <FaCalendarAlt />
-                {!isMobile && ` ${filterType || 'All Types'}`}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => setFilterType('')}>All Types</Dropdown.Item>
@@ -184,9 +219,10 @@ const Investment = () => {
                   onClick={() => navigate(`/investments/${investment.id}`)}
                   style={{ 
                     cursor: 'pointer', 
-                    padding: '10px', 
+                    padding: '5px', 
                     backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
                   }}
+                  className={isMobile ? 'px-2' : ''}
                 >
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
@@ -200,22 +236,28 @@ const Investment = () => {
                             {investment.title}
                           </h3>
                           <div>
-                            <span>{investment.platform}</span>
-                            <span className="ms-2">{getStatusBadge(investment)}</span>
+                          <span >{getStatusBadge(investment)}</span>
+                            <span className="ms-2">{investment.platform}</span>
+                            
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="text-end">
-                      <div>{investment.totalAmount.toFixed(2)} <small>{investment.currency}</small></div>
-                      <div>Qty: {investment.quantity} ({(investment.totalAmount / investment.quantity).toFixed(2)})</div>
+                    <div className="amount-display">
+                      <div className="amount-input">
+                        {investment.totalAmount.toFixed(2)}
+                        <span style={{ fontSize: '0.8rem', marginLeft: '2px' }}>{investment.currency}</span>
+                      </div>
+                      <div className="amount-qty">
+                        Qty: {investment.quantity} ({(investment.totalAmount / investment.quantity).toFixed(2)})
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p>No investments found. Add your first investment!</p>
+            <p className={isMobile ? 'px-3' : ''}>No investments found. Add your first investment!</p>
           )}
         </>
       )}

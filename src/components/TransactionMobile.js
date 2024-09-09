@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, Dropdown, Button } from 'react-bootstrap';
+import { Badge, Dropdown, Button, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaMoneyBillWave, FaTags, FaCreditCard, FaRedo, FaFileAlt, FaImage } from 'react-icons/fa';
 import { getCurrencyDecimals } from '../data/General';
@@ -66,14 +66,57 @@ const TransactionMobile = ({
     }
   };
 
+  const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
+    <Button
+      ref={ref}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick(e);
+      }}
+      variant="link"
+      style={{ color: '#0d6efd', border: 'none', padding: '0.375rem 0.75rem', fontSize: '1.5rem' }}
+    >
+      {children}
+    </Button>
+  ));
+
   return (
     <div>
-      <div className="d-flex justify-content-end align-items-center mb-3">
-        <Button variant="outline-secondary" onClick={resetFilters} className="me-2">
+      <style>
+        {`
+          .dropdown-toggle::after {
+            display: none;
+          }
+          .form-control::placeholder {
+            color: transparent;
+          }
+          .amount-display {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+          }
+          .amount-input {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: right;
+            border: none;
+            background-color: transparent;
+            padding: 0;
+            margin: 0;
+          }
+          .amount-converted {
+            font-size: 0.8rem;
+            color: grey;
+            margin-top: -5px;
+          }
+        `}
+      </style>
+      <div className="d-flex justify-content-end align-items-center mb-1">
+        <Button variant="link" onClick={resetFilters} className="me-2" style={{ color: '#0d6efd', border: 'none', fontSize: '1.5rem' }}>
           <FaRedo />
         </Button>
         <Dropdown className="me-2">
-          <Dropdown.Toggle variant="outline-secondary" id="dropdown-month">
+          <Dropdown.Toggle as={CustomToggle} id="dropdown-month">
             <FaCalendarAlt />
           </Dropdown.Toggle>
           <Dropdown.Menu>
@@ -84,7 +127,7 @@ const TransactionMobile = ({
           </Dropdown.Menu>
         </Dropdown>
         <Dropdown className="me-2">
-          <Dropdown.Toggle variant="outline-secondary" id="dropdown-currency">
+          <Dropdown.Toggle as={CustomToggle} id="dropdown-currency">
             <FaMoneyBillWave />
           </Dropdown.Toggle>
           <Dropdown.Menu>
@@ -95,7 +138,7 @@ const TransactionMobile = ({
           </Dropdown.Menu>
         </Dropdown>
         <Dropdown className="me-2">
-          <Dropdown.Toggle variant="outline-secondary" id="dropdown-category">
+          <Dropdown.Toggle as={CustomToggle} id="dropdown-category">
             <FaTags />
           </Dropdown.Toggle>
           <Dropdown.Menu>
@@ -106,7 +149,7 @@ const TransactionMobile = ({
           </Dropdown.Menu>
         </Dropdown>
         <Dropdown>
-          <Dropdown.Toggle variant="outline-secondary" id="dropdown-payment">
+          <Dropdown.Toggle as={CustomToggle} id="dropdown-payment">
             <FaCreditCard />
           </Dropdown.Toggle>
           <Dropdown.Menu>
@@ -122,7 +165,7 @@ const TransactionMobile = ({
         const [month, year] = monthYear.split(' ');
         return (
           <div key={monthYear}>
-            <h2 className="mt-4 mb-3 ps-3" style={{ fontSize: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+            <h2 className=" mb-3 ps-3" style={{ fontSize: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
               <span>{month.substring(0, 3)} {year}</span>
               <span>{formatAmount(getMonthlyTotal(transactions), mainCurrency)} {mainCurrency}</span>
             </h2>
@@ -162,9 +205,14 @@ const TransactionMobile = ({
                         </div>
                       </div>
                     </div>
-                    <div className="text-end">
-                      <div>{formatAmount(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency}</div>
-                      <div>{formatAmount(transaction.convertedAmount, mainCurrency)} {mainCurrency}</div>
+                    <div className="amount-display">
+                      <div className="amount-input">
+                        {formatAmount(transaction.amount, transaction.fromCurrency)}
+                        <span style={{ fontSize: '0.8rem', marginLeft: '2px' }}>{transaction.fromCurrency}</span>
+                      </div>
+                      <div className="amount-converted">
+                        {formatAmount(transaction.convertedAmount, mainCurrency)} {mainCurrency}
+                      </div>
                     </div>
                   </div>
                 </div>

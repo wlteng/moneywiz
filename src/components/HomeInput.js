@@ -34,6 +34,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   const paymentMethodsRef = useRef(null);
   const inputRefs = useRef({});
 
+
   const fetchMonthlyTotals = useCallback(async (userId) => {
     try {
       const now = new Date();
@@ -215,6 +216,10 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
     setLongPressTimer(timer);
   };
 
+  const handleTransactionClick = (transactionId) => {
+    navigate(`/transaction/${transactionId}/edit`);
+  };
+  
   const handleMouseUp = () => {
     if (longPressTimer) {
       clearTimeout(longPressTimer);
@@ -444,22 +449,22 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
       </style>
 
       {recentTransactions.map((transaction, index) => (
-        <Alert 
-          key={index} 
-          variant={getPaymentMethodBadgeColor(transaction.paymentMethod.type)} 
-          className="mb-2"
-          onClick={() => removeRecentTransaction(transaction.id)}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              {formatCurrency(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency} - 
-              {getPaymentMethodTag(transaction.paymentMethod)} - 
-              {userCategories.find(cat => cat.id === transaction.categoryId)?.name}
-            </div>
-          </div>
-        </Alert>
-      ))}
+              <Alert 
+                key={index} 
+                variant={getPaymentMethodBadgeColor(transaction.paymentMethod.type)} 
+                className="mb-2"
+                onClick={() => handleTransactionClick(transaction.id)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    {formatCurrency(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency} - 
+                    {getPaymentMethodTag(transaction.paymentMethod)} - 
+                    {userCategories.find(cat => cat.id === transaction.categoryId)?.name}
+                  </div>
+                </div>
+              </Alert>
+            ))}
 
       <Row className="align-items-center">
         <Col xs={6}>
