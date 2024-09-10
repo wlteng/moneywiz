@@ -1,0 +1,186 @@
+.public-exp-container {
+  font-family: Rubik, -apple-system, "SF Pro Text", "SF UI Text", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.public-exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.public-exp-select {
+  background-color: transparent;
+  border: none;
+  padding: 0 1em;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  color: #007bff;
+}
+
+.public-exp-card {
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.public-exp-card-content {
+  display: flex;
+  padding: 15px;
+}
+
+.public-exp-text-content {
+  flex: 1;
+  padding-right: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.public-exp-category {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.public-exp-amount {
+  font-weight: 600;
+  color: #007bff;
+  text-align: right;
+}
+
+.public-exp-title {
+  color: var(--title-color);
+  font-weight: 500;
+  line-height: 20px;
+  font-size: 14px;
+  margin: 0 0 8px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+}
+
+.public-exp-date-amount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;  /* Align icons with date */
+}
+
+.public-exp-date {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.public-exp-icons {
+  display: flex;
+  align-items: center;
+}
+
+.public-exp-like, .public-exp-flag {
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.public-exp-image-container {
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
+}
+
+.public-exp-image {
+    width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;  /* Curved corners for the popup image */
+}
+
+.public-exp-verify-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 24px;
+  color: white;
+  background-color: #28a745;  /* Green color for the verify badge */
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+.public-exp-modal {
+  background-color: transparent;
+  color: white;
+  text-align: left;
+  padding-top: 80px;  /* Padding at the top of the popup */
+}
+
+.public-exp-modal .modal-dialog {
+  margin-top: 0;  /* Align the modal to the top */
+}
+
+.public-exp-modal .modal-content {
+  background-color: transparent;  /* No background color */
+  border: none;
+}
+
+.public-exp-modal .modal-body {
+  color: white;
+  padding: 0;
+}
+
+.public-exp-modal .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);  /* Set the overlay opacity to 0.7 */
+}
+
+.public-exp-modal-image {
+  width: 100%;
+  height: auto;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 10px;  /* Curved corners for the popup image */
+}
+
+/* Close button styling */
+.public-exp-close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+  cursor: pointer;
+  color: white;
+}
+
+/* Tabs styling */
+.public-exp-tabs .nav-link {
+  font-weight: 700;
+  color: white;  /* White text for tab */
+  background-color: transparent;  /* No background initially */
+  border: none;
+  border-radius: 10px;  /* Curve for active tab */
+}
+
+.public-exp-tab.active {
+  background-color: #007bff;  /* Active tab background */
+  border-radius: 10px;  /* 4 corner curve for active tab */
+  border-bottom: none;  /* No bottom border */
+}
+
+.public-exp-header h5 {
+  margin-right: auto;
+  margin-bottom: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.public-exp-header .public-exp-select {
+  margin-left: auto;
+}

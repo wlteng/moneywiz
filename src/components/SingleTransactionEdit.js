@@ -4,8 +4,30 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../services/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Container, Row, Col, Button, Form, Image } from 'react-bootstrap';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaArrowLeft } from 'react-icons/fa';
 import { currencyList, getConvertedAmount } from '../data/General';
+
+const UploadBox = ({ label, onChange, preview }) => (
+  <div className="upload-box border rounded p-3 text-center" style={{ height: '150px', cursor: 'pointer' }}>
+    <input
+      type="file"
+      onChange={onChange}
+      style={{ display: 'none' }}
+      id={`file-input-${label}`}
+    />
+    <label htmlFor={`file-input-${label}`} style={{ cursor: 'pointer', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+      {preview ? (
+        <Image src={preview} alt={`${label} preview`} fluid style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+      ) : (
+        <>
+          <FaCloudUploadAlt size={30} color="#6c63ff" />
+          <p className="mt-2 mb-0" style={{ color: '#6c63ff', fontSize: '0.9rem' }}>{label}</p>
+          <p className="text-muted small" style={{ fontSize: '0.7rem' }}>(Max. 25 MB)</p>
+        </>
+      )}
+    </label>
+  </div>
+);
 
 const SingleTransactionEdit = () => {
   const { transactionId } = useParams();
@@ -20,37 +42,32 @@ const SingleTransactionEdit = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [convertedAmount, setConvertedAmount] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
     const fetchTransaction = async () => {
       try {
-        console.log('Fetching transaction:', transactionId);
         const docRef = doc(db, 'expenses', transactionId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = { id: docSnap.id, ...docSnap.data() };
-          console.log('Fetched transaction data:', data);
           setEditedTransaction(data);
           setReceiptPreview(data.receipt);
           setProductImagePreview(data.productImage);
           setConvertedAmount(data.convertedAmount);
+          setIsPublic(data.isPublic || false);
 
-          // Set date and time
           const transactionDate = new Date(data.date);
           setDate(transactionDate.toISOString().split('T')[0]);
           setTime(transactionDate.toTimeString().split(' ')[0].slice(0, 5));
 
-          // Fetch user data (categories and payment methods)
           const userDocRef = doc(db, 'users', data.userId);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
-            console.log('Fetched user data:', userData);
             setUserCategories(userData.categories || []);
             setUserPaymentMethods(userData.paymentMethods || []);
-          } else {
-            console.log('No user data found');
           }
         } else {
           console.log("No such transaction document!");
@@ -106,30 +123,22 @@ const SingleTransactionEdit = () => {
 
   const handleEdit = async () => {
     try {
-      console.log('Starting edit process');
-      let updatedTransaction = { ...editedTransaction };
-      console.log('Initial updatedTransaction:', updatedTransaction);
+      let updatedTransaction = { ...editedTransaction, isPublic };
 
-      // Combine date and time
       const combinedDate = new Date(`${date}T${time}`);
       updatedTransaction.date = combinedDate.toISOString();
-      console.log('Updated date:', updatedTransaction.date);
 
       if (newReceipt) {
         const receiptURL = await handleImageUpload(newReceipt, () => {});
         updatedTransaction.receipt = receiptURL;
-        console.log('Updated receipt URL:', receiptURL);
       }
 
       if (newProductImage) {
         const productImageURL = await handleImageUpload(newProductImage, () => {});
         updatedTransaction.productImage = productImageURL;
-        console.log('Updated product image URL:', productImageURL);
       }
 
-      console.log('Final updatedTransaction before save:', updatedTransaction);
       await updateDoc(doc(db, 'expenses', transactionId), updatedTransaction);
-      console.log('Transaction updated successfully');
       navigate(`/transaction/${transactionId}`);
     } catch (error) {
       console.error("Error updating transaction:", error);
@@ -138,7 +147,6 @@ const SingleTransactionEdit = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    console.log(`Input changed: ${name} = ${value}`);
     setEditedTransaction(prev => ({
       ...prev,
       [name]: value
@@ -148,7 +156,6 @@ const SingleTransactionEdit = () => {
   const handleCategoryChange = (e) => {
     const categoryId = e.target.value;
     const category = userCategories.find(cat => cat.id === categoryId);
-    console.log('Category changed:', category);
     setEditedTransaction(prev => ({
       ...prev,
       categoryId: categoryId,
@@ -188,7 +195,6 @@ const SingleTransactionEdit = () => {
   };
 
   const handlePaymentMethodChange = (method) => {
-    console.log('Payment method changed:', method);
     setEditedTransaction(prev => ({
       ...prev,
       paymentMethod: method
@@ -204,114 +210,151 @@ const SingleTransactionEdit = () => {
         setPreview(reader.result);
       };
       reader.readAsDataURL(file);
-      console.log('File changed:', file.name);
     }
   };
 
-  // Combine and deduplicate payment methods
-  const uniquePaymentMethods = [
-    { type: 'Cash', details: {} },
-    ...Array.from(new Set([...userPaymentMethods].map(JSON.stringify)))
-      .map(JSON.parse)
-      .filter(method => method.type !== 'Cash')
-  ];
+  const canShare = editedTransaction?.description && productImagePreview;
 
   if (!editedTransaction) {
     return <p>Loading...</p>;
   }
 
+  // Ensure 'Cash' is always the first payment method
+  const sortedPaymentMethods = [
+    { type: 'Cash', details: {} },
+    ...userPaymentMethods.filter(method => method.type !== 'Cash')
+  ];
+
+  const labelStyle = {
+    color: '#00008B',
+    fontWeight: 500,
+    marginBottom: '0.25rem'
+  };
+
   return (
     <Container className="mt-4 pb-5">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <Button variant="outline-primary" onClick={() => navigate(`/transaction/${transactionId}`)}>
-          <FaArrowLeft /> Back
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <Button 
+          variant="outline-primary" 
+          onClick={() => navigate(-1)} 
+          className="d-flex align-items-center"
+          style={{ border: '1px solid #007bff', padding: '0.375rem 0.75rem' }}
+        >
+          <FaArrowLeft className="me-2" /> Back
         </Button>
-        <h2>Edit Transaction</h2>
-        <div></div> {/* Empty div for flex spacing */}
+        <h2 className="m-0">Edit</h2>
+        <Button variant="primary" onClick={handleEdit}>
+          Save
+        </Button>
       </div>
 
       <Form>
-        <Row>
-          <Col>
-            <Form.Group className="mb-3">
-              <Form.Label>Date</Form.Label>
-              <Form.Control type="date" 
-                value={date}
-                onChange={(e) => {
-                  console.log('Date changed:', e.target.value);
-                  setDate(e.target.value);
-                }}
-              />
-            </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label style={labelStyle}>Description</Form.Label>
+          <Form.Control 
+            as="textarea" 
+            rows={3}
+            name="description"
+            value={editedTransaction?.description || ''}
+            onChange={handleInputChange}
+            placeholder="Description"
+          />
+        </Form.Group>
+
+        <Row className="mb-4 g-2">
+          <Col xs={6}>
+            <Form.Label style={labelStyle}>Receipt</Form.Label>
+            <UploadBox
+              label="Receipt"
+              onChange={(e) => handleFileChange(e, setNewReceipt, setReceiptPreview)}
+              preview={receiptPreview}
+            />
           </Col>
-          <Col>
-            <Form.Group className="mb-3">
-              <Form.Label>Time</Form.Label>
-              <Form.Control 
-                type="time" 
-                value={time}
-                onChange={(e) => {
-                  console.log('Time changed:', e.target.value);
-                  setTime(e.target.value);
-                }}
-              />
-            </Form.Group>
+          <Col xs={6}>
+            <Form.Label style={labelStyle}>Product Image</Form.Label>
+            <UploadBox
+              label="Product Image"
+              onChange={(e) => handleFileChange(e, setNewProductImage, setProductImagePreview)}
+              preview={productImagePreview}
+            />
+          </Col>
+        </Row>
+
+        <Row className="mb-3 g-2">
+          <Col xs={6}>
+            <Form.Label style={labelStyle}>Date</Form.Label>
+            <Form.Control 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)}
+              className="w-100"
+            />
+          </Col>
+          <Col xs={6}>
+            <Form.Label style={labelStyle}>Time</Form.Label>
+            <Form.Control 
+              type="time" 
+              value={time} 
+              onChange={(e) => setTime(e.target.value)}
+              className="w-100"
+            />
           </Col>
         </Row>
 
         <Form.Group className="mb-3">
-          <Form.Label>Category</Form.Label>
+          <Form.Label style={labelStyle}>Category</Form.Label>
           <Form.Select 
             value={editedTransaction?.categoryId || ''}
             onChange={handleCategoryChange}
           >
+            <option value="">Select Category</option>
             {userCategories.map(category => (
               <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </Form.Select>
         </Form.Group>
 
-        <Row>
-          <Col>
-            <Form.Group className="mb-3">
-              <Form.Label>Amount</Form.Label>
-              <Form.Control 
-                type="number" 
-                name="amount"
-                value={editedTransaction?.amount || ''}
-                onChange={handleInputChange}
-              />
-            </Form.Group>
+        <Row className="mb-3 g-2">
+          <Col xs={6}>
+            <Form.Label style={labelStyle}>Amount</Form.Label>
+            <Form.Control 
+              type="number" 
+              name="amount"
+              value={editedTransaction?.amount || ''}
+              onChange={handleInputChange}
+              placeholder="Amount"
+            />
           </Col>
-          <Col>
-            <Form.Group className="mb-3">
-              <Form.Label>Currency</Form.Label>
-              <Form.Select 
-                name="fromCurrency"
-                value={editedTransaction?.fromCurrency || ''}
-                onChange={handleInputChange}
-              >
-                {currencyList.map(currency => (
-                  <option key={currency.code} value={currency.code}>{currency.name}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+          <Col xs={6}>
+            <Form.Label style={labelStyle}>Currency</Form.Label>
+            <Form.Select 
+              name="fromCurrency"
+              value={editedTransaction?.fromCurrency || ''}
+              onChange={handleInputChange}
+            >
+              <option value="">Currency</option>
+              {currencyList.map(currency => (
+                <option key={currency.code} value={currency.code}>{currency.code}</option>
+              ))}
+            </Form.Select>
           </Col>
         </Row>
 
         <Form.Group className="mb-3">
-          <Form.Label>Converted Amount ({editedTransaction.toCurrency})</Form.Label>
+          <Form.Label style={labelStyle}>Converted Amount ({editedTransaction.toCurrency})</Form.Label>
           <Form.Control 
-            type="text" 
-            value={convertedAmount}
-            readOnly
+            type="number" 
+            name="convertedAmount"
+            value={editedTransaction?.convertedAmount || ''}
+            onChange={handleInputChange}
+            placeholder="Converted Amount"
           />
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Payment Method</Form.Label>
+          <Form.Label style={labelStyle}>Payment Method</Form.Label>
           <div className="d-flex overflow-auto mb-2 pb-2" style={{ paddingBottom: '10px' }}>
-            {uniquePaymentMethods.map((method, index) => (
+            {sortedPaymentMethods.map((method, index) => (
               <Button
                 key={index}
                 variant={getPaymentMethodBadgeColor(method.type)}
@@ -329,46 +372,20 @@ const SingleTransactionEdit = () => {
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Description</Form.Label>
-          <Form.Control 
-            as="textarea" 
-            rows={3}
-            name="description"
-            value={editedTransaction?.description || ''}
-            onChange={handleInputChange}
+          <Form.Check 
+            type="switch"
+            id="public-switch"
+            label="Share this transaction publicly"
+            checked={isPublic}
+            onChange={() => setIsPublic(!isPublic)}
+            disabled={!canShare}
           />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Receipt</Form.Label>
-          <Form.Control 
-            type="file"
-            onChange={(e) => handleFileChange(e, setNewReceipt, setReceiptPreview)}
-          />
-          {receiptPreview && (
-            <Image src={receiptPreview} alt="Receipt preview" fluid className="mt-2" style={{ maxHeight: '200px' }} />
+          {!canShare && (
+            <Form.Text className="text-muted">
+              To share this transaction, please add a description and a product image.
+            </Form.Text>
           )}
         </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Product Image</Form.Label>
-          <Form.Control 
-            type="file"
-            onChange={(e) => handleFileChange(e, setNewProductImage, setProductImagePreview)}
-          />
-          {productImagePreview && (
-            <Image src={productImagePreview} alt="Product image preview" fluid className="mt-2" style={{ maxHeight: '200px' }} />
-          )}
-        </Form.Group>
-
-        <div className="d-flex justify-content-end mt-4">
-          <Button variant="secondary" onClick={() => navigate(`/transaction/${transactionId}`)} className="me-2">
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleEdit}>
-            Save Changes
-          </Button>
-        </div>
       </Form>
     </Container>
   );

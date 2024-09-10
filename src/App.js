@@ -22,6 +22,7 @@ import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import ConversionRate from './pages/ConversionRate';
 import NonLoginHome from './components/NonLoginHome';
+import PublicExp from './pages/PublicExp';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -101,6 +102,7 @@ const App = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/conversion-rate" element={<ConversionRate />} />
+        <Route path="/public-expenses" element={<PublicExp />} />
       </Routes>
     </Router>
   );

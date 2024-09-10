@@ -39,6 +39,7 @@ const Header = ({ user }) => {
     { path: '/settings', label: 'Settings', requireAuth: true },
     { path: '/initial-setup', label: 'Initial Setup', requireAuth: true },
     { path: '/conversion-rate', label: 'Conversion Rates' },
+    { path: '/public-expenses', label: 'Public Expenses' },
   ];
 
   return (
@@ -282,7 +283,7 @@ const menuStyles = {
     color: '#919191',
     marginBottom: '20px',
     fontSize: '1.4rem',
-    fontWeight:500,
+    fontWeight: 500,
   },
   bmOverlay: {
     background: 'rgba(0, 0, 0, 0)',
