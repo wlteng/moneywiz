@@ -8,7 +8,7 @@ import { FaTimes, FaArrowUp, FaArrowDown, FaSave } from 'react-icons/fa';
 import { IoMdMove } from 'react-icons/io';
 import { convertCurrency } from '../services/conversionService';
 import { useNavigate } from 'react-router-dom';
-
+import StickyHeader from './StickyHeader';
 
 const HomeInput = ({ userCategories, userPaymentMethods }) => {
   const [amounts, setAmounts] = useState({});
@@ -29,10 +29,18 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   const navigate = useNavigate();
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [monthlyTotals, setMonthlyTotals] = useState({});
+  const stickyRef = useRef(null);
+  const spacerRef = useRef(null);
+  const [uniquePaymentMethods, setUniquePaymentMethods] = useState([]);
+  const [isSticky, setIsSticky] = useState(false);
+  const originalHeaderRef = useRef(null);
+  const stickyHeaderRef = useRef(null);
+
 
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const paymentMethodsRef = useRef(null);
   const inputRefs = useRef({});
+
 
 
   const fetchMonthlyTotals = useCallback(async (userId) => {
@@ -159,6 +167,16 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   }, [userCategories]);
 
   useEffect(() => {
+    const uniqueMethods = [
+      { type: 'Cash', details: {} },
+      ...Array.from(new Set([...recentPaymentMethods, ...userPaymentMethods].map(JSON.stringify)))
+        .map(JSON.parse)
+        .filter(method => method.type !== 'Cash')
+    ];
+    setUniquePaymentMethods(uniqueMethods);
+  }, [recentPaymentMethods, userPaymentMethods]);
+
+  useEffect(() => {
   const unsubscribe = auth.onAuthStateChanged((user) => {
     if (user) {
       setUser(user);
@@ -209,6 +227,26 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
     convertAmounts();
   }, [amounts, fromCurrency, mainCurrency]);
 
+  useEffect(() => {
+      const handleScroll = () => {
+        const originalHeader = originalHeaderRef.current;
+        if (originalHeader) {
+          const originalHeaderRect = originalHeader.getBoundingClientRect();
+          if (originalHeaderRect.top <= 60) { // 60px is the height of the main header
+            setIsSticky(true);
+          } else {
+            setIsSticky(false);
+          }
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+      };
+    }, []);
+
+
   const handleMouseDown = (categoryId) => {
     const timer = setTimeout(() => {
       navigate(`/keyboard/${categoryId}`);
@@ -219,7 +257,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   const handleTransactionClick = (transactionId) => {
     navigate(`/transaction/${transactionId}/edit`);
   };
-  
+
   const handleMouseUp = () => {
     if (longPressTimer) {
       clearTimeout(longPressTimer);
@@ -240,7 +278,6 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
     const decimals = getCurrencyDecimals(currency);
     return numericValue.toFixed(decimals);
   };
-
   const handleAmountChange = (categoryId, value) => {
       const numericValue = value.replace(/[^\d]/g, '');
       const decimals = getCurrencyDecimals(fromCurrency);
@@ -345,19 +382,18 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   };
 
   const getPaymentMethodColor = (type) => {
-    switch (type) {
-      case 'E-Wallet':
+    switch (type.toLowerCase()) {
+      case 'e-wallet':
         return 'rgba(0, 123, 255, 0.7)';
-      case 'Debit Card':
+      case 'debit card':
         return 'rgba(40, 167, 69, 0.7)';
-      case 'Credit Card':
+      case 'credit card':
         return 'rgba(220, 53, 69, 0.7)';
-      case 'Cash':
+      case 'cash':
       default:
         return 'rgba(108, 117, 125, 0.7)';
     }
   };
-
   const mobileStyles = {
     container: {
       paddingLeft: '5px',
@@ -419,196 +455,200 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
     return <Container className="mt-4"><Alert variant="danger">{error}</Alert></Container>;
   }
 
+  const headerStyle1 = {
+    padding: '5px 10px 0px 10px',
+  };
+
   return (
-    <Container className="mt-4 pb-5" style={{ 
-      maxWidth: '100%', 
-      ...(isMobile ? mobileStyles.container : {})
-    }}>
-      <style>
-        {`
-          @media (max-width: 767px) {
-            .container, .container-fluid {
-              padding-left: 5px !important;
-              padding-right: 5px !important;
+      <Container className="mt-4 pb-5" style={{ 
+        maxWidth: '100%', 
+        ...(isMobile ? mobileStyles.container : {})
+      }}>
+        <style>
+          {`
+            @media (max-width: 767px) {
+              .container, .container-fluid {
+                padding-left: 5px !important;
+                padding-right: 5px !important;
+              }
+              .payment-label {
+                font-size: 0.9rem;
+                padding-left: 5px;
+              }
             }
-            .payment-label {
-              font-size: 0.9rem;
-              padding-left: 5px;
+            .payment-method-button:hover {
+              opacity: 1;
             }
-          }
-          .payment-method-button:hover {
-            opacity: 1;
-          }
-          .btn-primary, .btn-outline-secondary {
-            border-color: transparent !important;
-          }
-          .payment-method-button {
-            height: 50px;
-          }
-        `}
-      </style>
+            .btn-primary, .btn-outline-secondary {
+              border-color: transparent !important;
+            }
+            .payment-method-button {
+              height: 50px;
+            }
+            .payment-methods-slider {
+              display: flex;
+              overflow-x: auto;
+              white-space: nowrap;
+              padding: 10px 0;
+              margin-right: 0px;
+            }
+          `}
+        </style>
 
-      {recentTransactions.map((transaction, index) => (
-              <Alert 
-                key={index} 
-                variant={getPaymentMethodBadgeColor(transaction.paymentMethod.type)} 
-                className="mb-2"
-                onClick={() => handleTransactionClick(transaction.id)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    {formatCurrency(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency} - 
-                    {getPaymentMethodTag(transaction.paymentMethod)} - 
-                    {userCategories.find(cat => cat.id === transaction.categoryId)?.name}
-                  </div>
-                </div>
-              </Alert>
-            ))}
-
-      <Row className="align-items-center">
-        <Col xs={6}>
-          <div className="payment-label" style={{ fontWeight: 'bold' }}>
-            {getPaymentMethodTag(paymentMethod)}
-          </div>
-        </Col>
-        <Col xs={6} className="d-flex justify-content-end">
-          <Button 
-            variant="link" 
-            onClick={toggleReordering}
-            style={{ 
-              ...mobileStyles.button, 
-              width: '50px', 
-              padding: 0, 
-              border: 'none', 
-              background: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+        {recentTransactions.map((transaction, index) => (
+          <Alert 
+            key={index} 
+            variant={getPaymentMethodBadgeColor(transaction.paymentMethod.type)} 
+            className="mb-2"
+            onClick={() => handleTransactionClick(transaction.id)}
+            style={{ cursor: 'pointer' }}
           >
-            {isReordering ? <FaSave size={24} /> : <IoMdMove size={24} />}
-          </Button>
-          <Form.Select 
-            value={fromCurrency}
-            onChange={handleCurrencyChange}
-            style={{ 
-              ...mobileStyles.input, 
-              width: 'auto', 
-              marginRight: '0px' 
-            }}
-          >
-            {favoriteCurrencies.map((currency) => (
-              <option key={currency} value={currency}>{currency}</option>
-            ))}
-          </Form.Select>
-          
-        </Col>
-      </Row>
-
-      <div className="payment-methods-slider" style={{
-        display: 'flex',
-        overflowX: 'auto',
-        whiteSpace: 'nowrap',
-        padding: '10px 0',
-        marginRight: '-11px',
-      }} ref={paymentMethodsRef}>
-        <Button
-          key="cash"
-          variant="outline-secondary"
-          onClick={() => handlePaymentMethodChange({ type: 'Cash', details: {} })}
-          className="me-2 payment-method-button"
-          style={{ 
-            flexShrink: 0,
-            backgroundColor: getPaymentMethodColor('Cash'),
-            color: 'white',
-          }}
-        >
-          Cash
-        </Button>
-        {recentPaymentMethods.filter(method => method.type !== 'Cash').map((method, index) => (
-          <Button
-            key={index}
-            variant="outline-secondary"
-            onClick={() => handlePaymentMethodChange(method)}
-            className="me-2 payment-method-button"
-            style={{ 
-              flexShrink: 0,
-              backgroundColor: getPaymentMethodColor(method.type),
-              color: 'white',
-            }}
-          >
-            {getPaymentMethodTag(method)}
-          </Button>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                {formatCurrency(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency} - 
+                {getPaymentMethodTag(transaction.paymentMethod)} - 
+                {userCategories.find(cat => cat.id === transaction.categoryId)?.name}
+              </div>
+            </div>
+          </Alert>
         ))}
-      </div>
 
-      {(isReordering ? tempFieldOrder : fieldOrder).map((categoryId, index) => {
-              const category = userCategories.find(cat => cat.id === categoryId);
-              if (!category) return null;
-              const monthlyTotal = monthlyTotals[categoryId] || 0;
-              return (
-                <Row key={categoryId} className="mb-3">
-                  <Col xs={12}>
-                    <InputGroup>
-                      {/* ... reordering buttons */}
-                      <Form.Control
-                        type="text" // Changed from "number" to "text"
-                        inputMode="numeric"
-                        value={amounts[category.id] || ''}
-                        onChange={(e) => handleAmountChange(category.id, e.target.value)}
-                        onFocus={() => handleFocus(category.id)}
-                        ref={(el) => inputRefs.current[category.id] = el}
-                        placeholder={`${mainCurrency} ${formatCurrency(monthlyTotal, mainCurrency)} `}
-                        style={isMobile ? mobileStyles.input : {}}
-                        disabled={isReordering}
-                      />
-                      <Button
-                        variant="primary"
-                        style={{ 
-                          ...categoryButtonStyle,
-                          backgroundColor: `${category.color}B3`,
-                        }}
-                        onClick={() => handleQuickSubmit(category.id, category.name)}
-                        onMouseDown={() => handleMouseDown(category.id)}
-                        onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseLeave}
-                        disabled={isReordering}
-                      >
-                        {category.name}
-                      </Button>
-                    </InputGroup>
-                    {amounts[category.id] && !isReordering && (
-                      <small className="text-muted">
-                        {formatCurrency(amounts[category.id], fromCurrency)} {fromCurrency} = 
-                        {convertedAmounts[category.id] !== undefined
-                          ? ` ${formatCurrency(convertedAmounts[category.id], mainCurrency)} ${mainCurrency}`
-                          : ' Converting...'}
-                      </small>
-                    )}
-                  </Col>
-                </Row>
-              );
-            })}
+        <div ref={originalHeaderRef} style={headerStyle1}>
+                <StickyHeader
+                  paymentMethod={paymentMethod}
+                  isReordering={isReordering}
+                  toggleReordering={toggleReordering}
+                  fromCurrency={fromCurrency}
+                  handleCurrencyChange={handleCurrencyChange}
+                  favoriteCurrencies={favoriteCurrencies}
+                  mobileStyles={mobileStyles}
+                  getPaymentMethodTag={getPaymentMethodTag}
+                  handlePaymentMethodChange={handlePaymentMethodChange}
+                  getPaymentMethodColor={getPaymentMethodColor}
+                  uniquePaymentMethods={uniquePaymentMethods}
+                  isSticky={false}
+                />
+              </div>
 
-      {showSuccess && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 1050,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          color: '#fff',
-          padding: '10px 20px',
-          borderRadius: '5px',
-          textAlign: 'center',
-        }}>
-          Transaction saved successfully!
-        </div>
-      )}
-    </Container>
-  );
-};
+              <div 
+                ref={stickyHeaderRef} 
+                style={{ 
+                  position: 'fixed',
+                  top: '60px',
+                  backgroundColor: "white",
+                  left: '0',
+                  right: '0',
+                  zIndex: 1000,
+                  display: isSticky ? 'block' : 'none',
+                  ...headerStyle1,
 
-export default HomeInput;
+                }}
+              >
+                <StickyHeader
+                  paymentMethod={paymentMethod}
+                  isReordering={isReordering}
+                  toggleReordering={toggleReordering}
+                  fromCurrency={fromCurrency}
+                  handleCurrencyChange={handleCurrencyChange}
+                  favoriteCurrencies={favoriteCurrencies}
+                  mobileStyles={mobileStyles}
+                  getPaymentMethodTag={getPaymentMethodTag}
+                  handlePaymentMethodChange={handlePaymentMethodChange}
+                  getPaymentMethodColor={getPaymentMethodColor}
+                  uniquePaymentMethods={uniquePaymentMethods}
+                  isSticky={true}
+                />
+              </div>
+
+
+              {(isReordering ? tempFieldOrder : fieldOrder).map((categoryId, index) => {
+                const category = userCategories.find(cat => cat.id === categoryId);
+                if (!category) return null;
+                const monthlyTotal = monthlyTotals[categoryId] || 0;
+                return (
+                  <Row key={categoryId} className="mb-3">
+                    <Col xs={12}>
+                      <InputGroup>
+                        {isReordering && (
+                          <>
+                            <Button
+                              variant="outline-secondary"
+                              onClick={() => moveField(index, -1)}
+                              disabled={index === 0}
+                            >
+                              <FaArrowUp />
+                            </Button>
+                            <Button
+                              variant="outline-secondary"
+                              onClick={() => moveField(index, 1)}
+                              disabled={index === tempFieldOrder.length - 1}
+                            >
+                              <FaArrowDown />
+                            </Button>
+                          </>
+                        )}
+                        <InputGroup.Text>{fromCurrency}</InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          inputMode="numeric"
+                          value={amounts[category.id] || ''}
+                          onChange={(e) => handleAmountChange(category.id, e.target.value)}
+                          onFocus={() => handleFocus(category.id)}
+                          ref={(el) => inputRefs.current[category.id] = el}
+                          placeholder={`${formatCurrency(monthlyTotal, mainCurrency)}`}
+                          style={isMobile ? mobileStyles.input : {}}
+                          disabled={isReordering}
+                        />
+                        <Button
+                          variant="primary"
+                          style={{ 
+                            ...categoryButtonStyle,
+                            backgroundColor: `${category.color}B3`,
+                          }}
+                          onClick={() => handleQuickSubmit(category.id, category.name)}
+                          onMouseDown={() => handleMouseDown(category.id)}
+                          onMouseUp={handleMouseUp}
+                          onMouseLeave={handleMouseLeave}
+                          disabled={isReordering}
+                        >
+                          {category.name}
+                        </Button>
+                      </InputGroup>
+                      {amounts[category.id] && !isReordering && (
+                        <div className="d-flex justify-content-between align-items-center mt-1">
+                          <small className="text-muted">
+                            {convertedAmounts[category.id] !== undefined
+                              ? `${formatCurrency(convertedAmounts[category.id], mainCurrency)} ${mainCurrency}`
+                              : 'Converting...'}
+                          </small>
+                          <small className="text-muted">
+                            {getPaymentMethodTag(paymentMethod)}
+                          </small>
+                        </div>
+                      )}
+                    </Col>
+                  </Row>
+                );
+              })}
+
+        {showSuccess && (
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1050,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            color: '#fff',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            textAlign: 'center',
+          }}>
+            Transaction saved successfully!
+          </div>
+        )}
+      </Container>
+    );
+  };
+
+  export default HomeInput;

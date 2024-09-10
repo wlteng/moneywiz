@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Alert, Spinner } from 'react-bootstrap';
 import { getStoredRates, getApiRates, saveRatesToFirestore, compareRates } from '../services/conversionService';
-import { currencyList } from '../data/General';
+import { currencyList, getCurrencyDecimals } from '../data/General';
 
 const ConversionRate = () => {
   const [storedRates, setStoredRates] = useState(null);
@@ -31,6 +31,20 @@ const ConversionRate = () => {
   useEffect(() => {
     fetchRates();
   }, []);
+
+  const formatValue = (value, code) => {
+    const decimals = getCurrencyDecimals(code);
+    return decimals === 0 ? value.toFixed(0) : value.toFixed(3); // Max 3 decimals, or no decimals if specified
+  };
+
+  const formatComparison = (comparison) => {
+    if (!comparison) return 'N/A';
+    const isPositive = comparison > 0;
+    const style = {
+      color: isPositive ? 'red' : 'green', // Red for positive, green for negative
+    };
+    return <span style={style}>{`${comparison}%`}</span>;
+  };
 
   const handleSave = async () => {
     try {
@@ -76,7 +90,6 @@ const ConversionRate = () => {
       <Table striped bordered hover>
         <thead>
           <tr>
-            
             <th>Code</th>
             <th>Stored Rate</th>
             <th>API Rate</th>
@@ -86,13 +99,14 @@ const ConversionRate = () => {
         <tbody>
           {currencyList.map((currency) => {
             const code = currency.code === 'RMB' ? 'CNY' : currency.code;
+            const storedRate = storedRates?.rates[code];
+            const apiRate = apiRates?.rates[code];
             return (
               <tr key={code}>
-                
                 <td>{code}</td>
-                <td>{storedRates?.rates[code] || 'N/A'}</td>
-                <td>{apiRates?.rates[code] || 'N/A'}</td>
-                <td>{comparisons[code] ? `${comparisons[code]}%` : 'N/A'}</td>
+                <td>{storedRate ? formatValue(storedRate, code) : 'N/A'}</td>
+                <td>{apiRate ? formatValue(apiRate, code) : 'N/A'}</td>
+                <td>{formatComparison(comparisons[code])}</td>
               </tr>
             );
           })}
