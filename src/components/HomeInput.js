@@ -357,7 +357,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
       case 'Cash':
         return 'Cash';
       case 'Credit Card':
-        return `${method.details.bank} - ${method.details.last4}`;
+        return `${method.details.bank} - ${method.details.last4} - ${method.details.name}`;
       case 'Debit Card':
         return `${method.details.bank} - ${method.details.last4}`;
       case 'E-Wallet':
@@ -455,8 +455,8 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
     return <Container className="mt-4"><Alert variant="danger">{error}</Alert></Container>;
   }
 
-  const headerStyle1 = {
-    padding: '5px 10px 0px 10px',
+  const headerStyle11 = {
+    padding: '5px 10px 0px',
   };
 
   return (
@@ -503,7 +503,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
             onClick={() => handleTransactionClick(transaction.id)}
             style={{ cursor: 'pointer' }}
           >
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="d-flex justify-content-between align-items-center ">
               <div>
                 {formatCurrency(transaction.amount, transaction.fromCurrency)} {transaction.fromCurrency} - 
                 {getPaymentMethodTag(transaction.paymentMethod)} - 
@@ -513,7 +513,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
           </Alert>
         ))}
 
-        <div ref={originalHeaderRef} style={headerStyle1}>
+        <div ref={originalHeaderRef} style={headerStyle11}>
                 <StickyHeader
                   paymentMethod={paymentMethod}
                   isReordering={isReordering}
@@ -540,7 +540,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
                   right: '0',
                   zIndex: 1000,
                   display: isSticky ? 'block' : 'none',
-                  ...headerStyle1,
+                  ...headerStyle11,
 
                 }}
               >

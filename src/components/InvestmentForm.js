@@ -1,24 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col } from 'react-bootstrap';
-import { investmentTypes, investmentPlatforms, investmentStyles, unitOptions, currencyList } from '../data/General';
+import { investmentTypes, investmentStyles, unitOptions, currencyList } from '../data/General';
+import { auth, db } from '../services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const InvestmentForm = ({ onSubmit }) => {
   const [title, setTitle] = useState('');
-  const [type, setType] = useState('');
+  const [type, setType] = useState('Share');
   const [platform, setPlatform] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('');
+  const [unit, setUnit] = useState('unit');
   const [totalAmount, setTotalAmount] = useState('');
   const [currency, setCurrency] = useState('');
   const [style, setStyle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const [userPlatforms, setUserPlatforms] = useState([]);
 
   useEffect(() => {
-    if (type === 'Share') {
-      setUnit('unit');
-    }
-  }, [type]);
+    const fetchUserPlatforms = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          setUserPlatforms(userData.investmentPlatforms || []);
+        }
+      }
+    };
+
+    fetchUserPlatforms();
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -38,6 +51,8 @@ const InvestmentForm = ({ onSubmit }) => {
     });
   };
 
+  const filteredUnitOptions = unitOptions.filter(option => option !== 'share');
+
   return (
     <Form onSubmit={handleSubmit}>
       <Form.Group className="mb-3">
@@ -50,7 +65,6 @@ const InvestmentForm = ({ onSubmit }) => {
           <Form.Group>
             <Form.Label>Type</Form.Label>
             <Form.Select value={type} onChange={(e) => setType(e.target.value)} required>
-              <option value="">Select type</option>
               {investmentTypes.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
@@ -62,7 +76,7 @@ const InvestmentForm = ({ onSubmit }) => {
             <Form.Label>Investment Platform</Form.Label>
             <Form.Select value={platform} onChange={(e) => setPlatform(e.target.value)} required>
               <option value="">Select platform</option>
-              {investmentPlatforms.map((p) => (
+              {userPlatforms.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </Form.Select>
@@ -95,9 +109,8 @@ const InvestmentForm = ({ onSubmit }) => {
         <Col>
           <Form.Group>
             <Form.Label>Unit</Form.Label>
-            <Form.Select value={unit} onChange={(e) => setUnit(e.target.value)} required disabled={type === 'Share'}>
-              <option value="">Select unit</option>
-              {unitOptions.map((u) => (
+            <Form.Select value={unit} onChange={(e) => setUnit(e.target.value)} required>
+              {filteredUnitOptions.map((u) => (
                 <option key={u} value={u}>{u}</option>
               ))}
             </Form.Select>
