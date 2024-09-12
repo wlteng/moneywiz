@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { auth } from './services/firebase';
 import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { getUserData } from './services/userService';
 import Home from './pages/Home';
 import Transactions from './pages/Transactions';
 import SingleTransaction from './pages/SingleTransaction';
@@ -23,6 +24,11 @@ import RegisterPage from './components/RegisterPage';
 import ConversionRate from './pages/ConversionRate';
 import NonLoginHome from './components/NonLoginHome';
 import PublicExp from './pages/PublicExp';
+import CreditCardForm from './pages/admin/CreditCardForm';
+import ShopForm from './pages/admin/ShopForm';
+import CreditCardList from './pages/CreditCardList';
+import CreditCardDetail from './pages/CreditCardDetail';
+import CreditCardEdit from './pages/CreditCardEdit';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -32,15 +38,19 @@ const App = () => {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Handle redirect result first
         const result = await getRedirectResult(auth);
         if (result?.user) {
-          setUser(result.user);
+          const userData = await getUserData(result.user.uid);
+          setUser({ ...result.user, ...userData });
         }
 
-        // Set up the auth state listener
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-          setUser(user);
+        const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+          if (authUser) {
+            const userData = await getUserData(authUser.uid);
+            setUser({ ...authUser, ...userData });
+          } else {
+            setUser(null);
+          }
           setLoading(false);
         }, (error) => {
           console.error("Auth state error:", error);
@@ -67,15 +77,14 @@ const App = () => {
     return <div>An authentication error occurred. Please try logging in again.</div>;
   }
 
-  // Custom Route component to handle authentication
-  const ProtectedRoute = ({ children }) => {
+  const ProtectedRoute = ({ children, allowedRoles = ['user', 'admin', 'bankstaff'] }) => {
     const navigate = useNavigate();
     
     useEffect(() => {
-      if (!user) {
+      if (!user || !allowedRoles.includes(user.role)) {
         navigate('/', { replace: true });
       }
-    }, [user, navigate]);
+    }, [user, navigate, allowedRoles]);
 
     return children;
   };
@@ -103,6 +112,15 @@ const App = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/conversion-rate" element={<ConversionRate />} />
         <Route path="/public-expenses" element={<PublicExp />} />
+        <Route path="/admin/credit-card-form" element={<ProtectedRoute allowedRoles={['admin', 'bankstaff']}><CreditCardForm /></ProtectedRoute>} />
+        <Route path="/admin/shop-form" element={<ProtectedRoute allowedRoles={['admin']}><ShopForm /></ProtectedRoute>} />
+        <Route path="/credit-cards" element={<CreditCardList />} />
+        <Route path="/credit-cards/:id" element={<CreditCardDetail />} />
+        <Route path="/credit-cards/:id/edit" element={
+          <ProtectedRoute allowedRoles={['admin', 'bankstaff']}>
+            <CreditCardEdit />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   );

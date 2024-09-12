@@ -30,16 +30,20 @@ const Header = ({ user }) => {
   }, [location]);
 
   const menuItems = [
-    { path: '/', label: 'Home' },
-    { path: '/transactions', label: 'Transactions', requireAuth: true },
-    { path: '/investments', label: 'Investments', requireAuth: true },
-    { path: '/debts', label: 'Debts', requireAuth: true },
-    { path: '/report', label: 'Report', requireAuth: true },
-    { path: '/profile', label: 'Profile', requireAuth: true },
-    { path: '/settings', label: 'Settings', requireAuth: true },
-    { path: '/initial-setup', label: 'Initial Setup', requireAuth: true },
-    { path: '/conversion-rate', label: 'Conversion Rates' },
-    { path: '/public-expenses', label: 'Public Expenses' },
+    { path: '/', label: 'Home', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/credit-cards', label: 'Credit Cards', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/transactions', label: 'Transactions', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/investments', label: 'Investments', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/debts', label: 'Debts', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/report', label: 'Report', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/profile', label: 'Profile', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/settings', label: 'Settings', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/initial-setup', label: 'Initial Setup', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/conversion-rate', label: 'Conversion Rates', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/public-expenses', label: 'Public Expenses', roles: ['user', 'admin', 'bankstaff'] },
+    { path: '/admin/credit-card-form', label: 'Add Credit Card (bank)', roles: ['admin', 'bankstaff'] },
+    { path: '/admin/shop-form', label: 'Manage Shops(admin)', roles: ['admin'] },
+    
   ];
 
   return (
@@ -77,7 +81,7 @@ const Header = ({ user }) => {
           </div>
         )}
         {menuItems.map((item) => (
-          (!item.requireAuth || user) && (
+          (user && item.roles.includes(user.role)) && (
             <Link 
               key={item.path}
               to={item.path} 
@@ -275,19 +279,19 @@ const menuStyles = {
     color: '#373a47',
     padding: '0.8em',
     display: 'flex',
-    flexDirection: 'column',
-  },
-  bmItem: {
-    display: 'inline-block',
-    textDecoration: 'none',
-    color: '#919191',
-    marginBottom: '20px',
-    fontSize: '1.4rem',
-    fontWeight: 500,
-  },
-  bmOverlay: {
-    background: 'rgba(0, 0, 0, 0)',
-  },
-};
+        flexDirection: 'column',
+      },
+      bmItem: {
+        display: 'inline-block',
+        textDecoration: 'none',
+        color: '#919191',
+        marginBottom: '20px',
+        fontSize: '1.4rem',
+        fontWeight: 500,
+      },
+      bmOverlay: {
+        background: 'rgba(0, 0, 0, 0)',
+      },
+    };
 
-export default Header;
+    export default Header;

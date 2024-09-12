@@ -2,20 +2,20 @@
 
 // Define manual conversion rates from MYR to other currencies
 const conversionRates = {
-  USD: 0.22, // 1 MYR = 0.22 USD
+  USD: 0.21, // 1 MYR = 0.21 USD
   EUR: 0.20, // 1 MYR = 0.20 EUR
-  GBP: 0.18, // 1 MYR = 0.18 GBP
+  GBP: 0.17, // 1 MYR = 0.17 GBP
   SGD: 0.31, // 1 MYR = 0.31 SGD
-  AUD: 0.34, // 1 MYR = 0.34 AUD
+  AUD: 0.33, // 1 MYR = 0.33 AUD
   RMB: 1.52, // 1 MYR = 1.52 RMB (Chinese Yuan)
-  THB: 7.10, // 1 MYR = 7.10 THB (Thai Baht)
-  IDR: 3340.00, // 1 MYR = 3340.00 IDR (Indonesian Rupiah)
-  PHP: 12.00, // 1 MYR = 12.00 PHP (Philippine Peso)
-  VND: 5100.00, // 1 MYR = 5100.00 VND (Vietnamese Dong)
+  THB: 7.57, // 1 MYR = 7.57 THB (Thai Baht)
+  IDR: 3290.00, // 1 MYR = 3290.00 IDR (Indonesian Rupiah)
+  PHP: 11.94, // 1 MYR = 11.94 PHP (Philippine Peso)
+  VND: 5150.00, // 1 MYR = 5150.00 VND (Vietnamese Dong)
   BND: 0.31, // 1 MYR = 0.31 BND (Brunei Dollar)
-  KHR: 900.00, // 1 MYR = 900.00 KHR (Cambodian Riel)
-  HKD: 1.72, // 1 MYR = 1.72 HKD (Hong Kong Dollar)
-  MOP: 1.76, // 1 MYR = 1.76 MOP (Macanese Pataca)
+  KHR: 988.00, // 1 MYR = 988.00 KHR (Cambodian Riel)
+  HKD: 1.65, // 1 MYR = 1.65 HKD (Hong Kong Dollar)
+  MOP: 1.70, // 1 MYR = 1.70 MOP (Macanese Pataca)
 };
 export const getConvertedAmount = (amount, fromCurrency, toCurrency) => {
   try {
@@ -147,3 +147,34 @@ export const unitOptions = [
   // Add more units as needed
 ];
 
+export const banks = [
+  'Public Bank',
+  'HSBC',
+  'RHB',
+  'Maybank',
+  'CIMB',
+  'AmBank',
+  'Hong Leong Bank',
+  'Standard Chartered',
+  'UOB',
+  'OCBC Bank',
+  // Add more banks as needed
+];
+
+export const shopCategories = [
+  'Grocery',
+  'Fashion',
+  'Electronics',
+  'Home & Garden',
+  'Health & Beauty',
+  'Sports',
+  'Toys & Games',
+  'Automotive',
+  'Pets',
+  'Food & Beverage',
+  'Jewelry ',
+  'Travel',
+  'Services',
+  'E-wallet',
+  'Other'
+];
