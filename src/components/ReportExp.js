@@ -16,7 +16,9 @@ const ReportExp = () => {
   const [totalByCategory, setTotalByCategory] = useState([]);
   const [totalByPaymentMethod, setTotalByPaymentMethod] = useState([]);
   const [totalPayment, setTotalPayment] = useState(null);
+  const [dailyAverage, setDailyAverage] = useState(null);
   const [chartData, setChartData] = useState([]);
+  const [daysInPeriod, setDaysInPeriod] = useState(null);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -33,7 +35,18 @@ const ReportExp = () => {
           const querySnapshot = await getDocs(q);
           const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setTransactions(fetchedTransactions);
-          setFilteredTransactions(fetchedTransactions);
+          
+          // Set current month as default
+          const currentDate = new Date();
+          const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+          setSelectedMonth(currentMonth);
+          
+          const filtered = fetchedTransactions.filter(transaction => {
+            const transactionDate = new Date(transaction.date);
+            return transactionDate.getFullYear() === currentDate.getFullYear() &&
+                   transactionDate.getMonth() === currentDate.getMonth();
+          });
+          setFilteredTransactions(filtered);
         }
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -54,8 +67,14 @@ const ReportExp = () => {
                transactionDate.getMonth() === parseInt(selectedMonth.split('-')[1]) - 1;
       });
       setFilteredTransactions(filtered);
+      const daysInMonth = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]), 0).getDate();
+      setDaysInPeriod(daysInMonth);
     } else {
       setFilteredTransactions(transactions);
+      const earliestDate = new Date(Math.min(...transactions.map(t => new Date(t.date))));
+      const latestDate = new Date(Math.max(...transactions.map(t => new Date(t.date))));
+      const daysDiff = Math.ceil((latestDate - earliestDate) / (1000 * 60 * 60 * 24)) + 1;
+      setDaysInPeriod(daysDiff);
     }
   }, [selectedMonth, transactions]);
 
@@ -100,17 +119,33 @@ const ReportExp = () => {
         dailyTotals[date] += convertedAmount;
       }
 
-      setTotalByCurrency(Object.entries(currencyTotals).map(([currency, amount]) => ({ currency, amount })));
-      setTotalByCategory(Object.entries(categoryTotals).map(([category, amount]) => ({ category, amount })));
-      setTotalByPaymentMethod(Object.entries(paymentMethodTotals).map(([method, amount]) => ({ method, amount })));
+      setTotalByCurrency(Object.entries(currencyTotals).map(([currency, amount]) => ({ 
+        currency, 
+        amount,
+        dailyAverage: amount / daysInPeriod
+      })));
+      setTotalByCategory(Object.entries(categoryTotals).map(([category, amount]) => ({ 
+        category, 
+        amount,
+        dailyAverage: amount / daysInPeriod
+      })));
+      setTotalByPaymentMethod(Object.entries(paymentMethodTotals).map(([method, amount]) => ({ 
+        method, 
+        amount,
+        dailyAverage: amount / daysInPeriod
+      })));
       setTotalPayment(total);
+      setDailyAverage(total / daysInPeriod);
+
       setChartData(Object.entries(dailyTotals)
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([date, amount]) => ({ date, amount })));
     };
 
-    calculateTotals();
-  }, [filteredTransactions, mainCurrency]);
+    if (daysInPeriod) {
+      calculateTotals();
+    }
+  }, [filteredTransactions, mainCurrency, daysInPeriod]);
 
   const getMonthOptions = () => {
     const months = [...new Set(transactions.map(transaction => {
@@ -152,32 +187,32 @@ const ReportExp = () => {
       <Row>
         <Col>
           <Alert variant="info" className="mb-2">
-            <strong>Total Payment:</strong> {totalPayment?.toFixed(2)} {mainCurrency}
+            <strong>Total Payment:</strong> {totalPayment?.toFixed(2)} {mainCurrency} ({dailyAverage?.toFixed(2)})
           </Alert>
         </Col>
       </Row>
       <Row>
         <Col md={4}>
           <h3>Total by Currency</h3>
-          {totalByCurrency.map(({ currency, amount }, index) => (
+          {totalByCurrency.map(({ currency, amount, dailyAverage }, index) => (
             <Alert key={currency} variant={['primary', 'success', 'warning', 'danger', 'info'][index % 5]} className="mb-2">
-              <strong>{currency}:</strong> {amount.toFixed(2)}
+              <strong>{currency}:</strong> {amount.toFixed(2)} ({dailyAverage.toFixed(2)})
             </Alert>
           ))}
         </Col>
         <Col md={4}>
           <h3>Total by Category</h3>
-          {totalByCategory.map(({ category, amount }, index) => (
+          {totalByCategory.map(({ category, amount, dailyAverage }, index) => (
             <Alert key={category} variant={['success', 'info', 'warning', 'danger', 'primary'][index % 5]} className="mb-2">
-              <strong>{category}:</strong> {amount.toFixed(2)} {mainCurrency}
+              <strong>{category}:</strong> {amount.toFixed(2)} {mainCurrency} ({dailyAverage.toFixed(2)})
             </Alert>
           ))}
         </Col>
         <Col md={4}>
           <h3>Total by Payment Method</h3>
-          {totalByPaymentMethod.map(({ method, amount }, index) => (
+          {totalByPaymentMethod.map(({ method, amount, dailyAverage }, index) => (
             <Alert key={method} variant={['info', 'success', 'warning', 'danger', 'primary'][index % 5]} className="mb-2">
-              <strong>{method}:</strong> {amount.toFixed(2)} {mainCurrency}
+              <strong>{method}:</strong> {amount.toFixed(2)} {mainCurrency} ({dailyAverage.toFixed(2)})
             </Alert>
           ))}
         </Col>
