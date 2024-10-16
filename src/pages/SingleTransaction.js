@@ -2,8 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { Container, Row, Col, Button, Modal } from 'react-bootstrap';
-import { FaArrowLeft, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
+import { Container, Row, Col, Button, Modal, Alert } from 'react-bootstrap';
+import { FaArrowLeft, FaTimes, FaEdit, FaTrash, FaReceipt, FaImage } from 'react-icons/fa';
+
+const ImagePlaceholder = ({ icon: Icon, text }) => (
+  <div 
+    style={{
+      width: '100%',
+      height: '300px',
+      backgroundColor: '#f8f9fa',
+      borderRadius: '10px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      color: '#6c757d',
+      border: '2px dashed #ced4da'
+    }}
+  >
+    <Icon size={48} />
+    <p className="mt-2 text-center">{text}</p>
+  </div>
+);
 
 const SingleTransaction = () => {
   const { transactionId } = useParams();
@@ -42,7 +62,13 @@ const SingleTransaction = () => {
     if (method.type === 'Cash') return 'Cash';
     if (method.type === 'E-Wallet') return `${method.type}: ${method.details.name}`;
     if (method.type === 'Credit Card' || method.type === 'Debit Card') {
-      return `${method.type}: ${method.details.bank} - **** **** **** ${method.details.last4}`;
+      return (
+        <>
+          {method.type}
+          <br />
+          <span className="text-muted">{method.details.bank} - {method.details.last4}</span>
+        </>
+      );
     }
     return 'Unknown payment method';
   };
@@ -65,12 +91,10 @@ const SingleTransaction = () => {
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        {/* Modified: Changed "Back to Transactions" to "Back" */}
         <Button variant="outline-primary" onClick={() => navigate('/transactions')}>
           <FaArrowLeft /> Back
         </Button>
         <div>
-          {/* Modified: Changed Edit and Delete buttons to icon buttons */}
           <Button variant="warning" onClick={() => navigate(`/transaction/${transactionId}/edit`)} className="me-2">
             <FaEdit />
           </Button>
@@ -82,52 +106,76 @@ const SingleTransaction = () => {
 
       <h2 className="mb-4">Transaction Details</h2>
 
-      <Row>
+      <Row className="mb-2">
         <Col><strong>Date:</strong> {new Date(transaction.date).toLocaleString()}</Col>
       </Row>
-      <Row>
+      <Row className="mb-2">
         <Col><strong>Category:</strong> {transaction.categoryName}</Col>
       </Row>
-      <Row>
+      <Row className="mb-2">
         <Col><strong>Amount:</strong> {transaction.amount} {transaction.fromCurrency}</Col>
       </Row>
-      <Row>
+      <Row className="mb-2">
         <Col><strong>Converted Amount:</strong> {transaction.convertedAmount} {transaction.toCurrency}</Col>
       </Row>
-      <Row>
-        <Col><strong>Payment Method:</strong> {getPaymentMethodDetails(transaction.paymentMethod)}</Col>
-      </Row>
-      <Row>
-        <Col><strong>Description:</strong> {transaction.description}</Col>
-      </Row>
-      <Row className="mt-4">
+      <Row className="mb-2">
         <Col>
-          <h5>Receipt</h5>
-          {transaction.receipt ? (
-            <img
-              src={transaction.receipt}
-              alt="Receipt"
-              className="img-fluid"
-              style={{ maxHeight: '300px', cursor: 'pointer' }}
-              onClick={() => setShowReceiptModal(true)}
-            />
+          <strong>Payment Method:</strong> 
+          <div>{getPaymentMethodDetails(transaction.paymentMethod)}</div>
+        </Col>
+      </Row>
+      <Row className="mb-4">
+        <Col>
+          <strong>Description:</strong> 
+          {transaction.description ? (
+            transaction.description
           ) : (
-            <p>No receipt available</p>
+            <Alert variant="warning" className="mt-2">
+              No description provided
+            </Alert>
           )}
         </Col>
-        <Col>
+      </Row>
+      <Row className="mt-4">
+        <Col xs={12} lg={6} className="mb-3 mb-lg-0">
+          <h5>Receipt</h5>
+          <div style={{ height: '300px', width: '100%', overflow: 'hidden', borderRadius: '10px' }}>
+            {transaction.receipt ? (
+              <img
+                src={transaction.receipt}
+                alt="Receipt"
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover', 
+                  cursor: 'pointer'
+                }}
+                onClick={() => setShowReceiptModal(true)}
+              />
+            ) : (
+              <ImagePlaceholder icon={FaReceipt} text="No receipt available" />
+            )}
+          </div>
+        </Col>
+        <Col xs={12} lg={6}>
           <h5>Product Image</h5>
-          {transaction.productImage ? (
-            <img
-              src={transaction.productImage}
-              alt="Product"
-              className="img-fluid"
-              style={{ maxHeight: '300px', cursor: 'pointer' }}
-              onClick={() => setShowProductImageModal(true)}
-            />
-          ) : (
-            <p>No product image available</p>
-          )}
+          <div style={{ height: '300px', width: '100%', overflow: 'hidden', borderRadius: '10px' }}>
+            {transaction.productImage ? (
+              <img
+                src={transaction.productImage}
+                alt="Product"
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover', 
+                  cursor: 'pointer'
+                }}
+                onClick={() => setShowProductImageModal(true)}
+              />
+            ) : (
+              <ImagePlaceholder icon={FaImage} text="No product image available" />
+            )}
+          </div>
         </Col>
       </Row>
 
