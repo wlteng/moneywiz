@@ -46,21 +46,21 @@ export const getConvertedAmount = (amount, fromCurrency, toCurrency) => {
 
 // Define a list of currencies for dropdowns or other uses
 export const currencyList = [
-  { code: 'MYR', name: 'Malaysian Ringgit', decimals: 2 },
-  { code: 'USD', name: 'US Dollar', decimals: 2 },
-  { code: 'EUR', name: 'Euro', decimals: 2 },
-  { code: 'GBP', name: 'British Pound', decimals: 2 },
-  { code: 'SGD', name: 'Singapore Dollar', decimals: 2 },
-  { code: 'AUD', name: 'Australian Dollar', decimals: 2 },
-  { code: 'RMB', name: 'Chinese Yuan', decimals: 2 },
-  { code: 'THB', name: 'Thai Baht', decimals: 1 },
-  { code: 'IDR', name: 'Indonesian Rupiah', decimals: 0 },
-  { code: 'PHP', name: 'Philippine Peso', decimals: 1 },
-  { code: 'VND', name: 'Vietnamese Dong', decimals: 0 },
-  { code: 'BND', name: 'Brunei Dollar', decimals: 2 },
-  { code: 'KHR', name: 'Cambodian Riel', decimals: 0 },
-  { code: 'HKD', name: 'Hong Kong Dollar', decimals: 2 },
-  { code: 'MOP', name: 'Macanese Pataca', decimals: 2 },
+  { code: 'MYR', name: 'Malaysian Ringgit', country: 'Malaysia', decimals: 2 },
+  { code: 'USD', name: 'US Dollar', country: 'United States', decimals: 2 },
+  { code: 'EUR', name: 'Euro', country: 'European Union', decimals: 2 },
+  { code: 'GBP', name: 'British Pound', country: 'United Kingdom', decimals: 2 },
+  { code: 'SGD', name: 'Singapore Dollar', country: 'Singapore', decimals: 2 },
+  { code: 'AUD', name: 'Australian Dollar', country: 'Australia', decimals: 2 },
+  { code: 'RMB', name: 'Chinese Yuan', country: 'China', decimals: 2 },
+  { code: 'THB', name: 'Thai Baht', country: 'Thailand', decimals: 1 },
+  { code: 'IDR', name: 'Indonesian Rupiah', country: 'Indonesia', decimals: 0 },
+  { code: 'PHP', name: 'Philippine Peso', country: 'Philippines', decimals: 1 },
+  { code: 'VND', name: 'Vietnamese Dong', country: 'Vietnam', decimals: 0 },
+  { code: 'BND', name: 'Brunei Dollar', country: 'Brunei', decimals: 2 },
+  { code: 'KHR', name: 'Cambodian Riel', country: 'Cambodia', decimals: 0 },
+  { code: 'HKD', name: 'Hong Kong Dollar', country: 'Hong Kong', decimals: 2 },
+  { code: 'MOP', name: 'Macanese Pataca', country: 'Macau', decimals: 2 },
 ];
 
 export const getCurrencyDecimals = (currencyCode) => {
@@ -121,8 +121,9 @@ export const debitCards = [
 ];
 
 export const investmentPlatforms = [
-  { country: 'USA', platforms: ['Robinhood', 'Fidelity', 'Webull', 'Binance', 'Coinbase'] },
-  { country: 'Singapore', platforms: ['ABC', 'XYZ'] }
+  { country: 'Malaysia', platforms: ['Luno', 'Remitano', 'eToro', 'Binance', 'Webull', 'Moomoo'] },
+  { country: 'Singapore', platforms: ['Tiger Brokers', 'Saxo Markets', 'Moomoo', 'FSMOne', 'OCBC Securities', 'DBS Vickers', 'Binance', 'Kraken', 'Coinbase'] },
+  { country: 'Vietnam', platforms: ['Binance', 'Remitano', 'VNDIRECT', 'SSI Securities', 'HSC', 'Coinbase', 'Kraken', 'Moomoo'] }
 ];
 
 export const investmentTypes = [
