@@ -3,17 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../services/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { Container, Row, Col, Button, Form, Image } from 'react-bootstrap';
+import { Container, Row, Col, Button, Form, Image, ProgressBar } from 'react-bootstrap';
 import { FaCloudUploadAlt, FaArrowLeft } from 'react-icons/fa';
 import { currencyList, getConvertedAmount } from '../data/General';
+import imageCompression from 'browser-image-compression';
 
-const UploadBox = ({ label, onChange, preview }) => (
+const UploadBox = ({ label, onChange, preview, progress }) => (
   <div className="upload-box border rounded p-3 text-center" style={{ height: '150px', cursor: 'pointer' }}>
     <input
       type="file"
       onChange={onChange}
       style={{ display: 'none' }}
       id={`file-input-${label}`}
+      accept="image/*"
     />
     <label htmlFor={`file-input-${label}`} style={{ cursor: 'pointer', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
       {preview ? (
@@ -26,6 +28,9 @@ const UploadBox = ({ label, onChange, preview }) => (
         </>
       )}
     </label>
+    {progress > 0 && progress < 100 && (
+      <ProgressBar now={progress} label={`${progress}%`} style={{ marginTop: '10px' }} />
+    )}
   </div>
 );
 
@@ -37,6 +42,8 @@ const SingleTransactionEdit = () => {
   const [newProductImage, setNewProductImage] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [productImagePreview, setProductImagePreview] = useState(null);
+  const [receiptProgress, setReceiptProgress] = useState(0);
+  const [productImageProgress, setProductImageProgress] = useState(0);
   const [userCategories, setUserCategories] = useState([]);
   const [userPaymentMethods, setUserPaymentMethods] = useState([]);
   const [date, setDate] = useState('');
@@ -96,29 +103,50 @@ const SingleTransactionEdit = () => {
     updateConvertedAmount();
   }, [editedTransaction?.amount, editedTransaction?.fromCurrency, editedTransaction?.toCurrency]);
 
+  const compressImage = async (file) => {
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
+    };
+    try {
+      const compressedFile = await imageCompression(file, options);
+      return compressedFile;
+    } catch (error) {
+      console.error("Error compressing image:", error);
+      return file;
+    }
+  };
+
   const handleImageUpload = async (file, setProgress) => {
     if (!file) return null;
 
-    const storageRef = ref(storage, `images/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    try {
+      const compressedFile = await compressImage(file);
+      const storageRef = ref(storage, `images/${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, compressedFile);
 
-    return new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(progress);
-        },
-        (error) => {
-          console.error('Upload error:', error);
-          reject(error);
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
-        }
-      );
-    });
+      return new Promise((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setProgress(Math.round(progress));
+          },
+          (error) => {
+            console.error('Upload error:', error);
+            reject(error);
+          },
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          }
+        );
+      });
+    } catch (error) {
+      console.error("Error in handleImageUpload:", error);
+      throw error;
+    }
   };
 
   const handleEdit = async () => {
@@ -129,12 +157,12 @@ const SingleTransactionEdit = () => {
       updatedTransaction.date = combinedDate.toISOString();
 
       if (newReceipt) {
-        const receiptURL = await handleImageUpload(newReceipt, () => {});
+        const receiptURL = await handleImageUpload(newReceipt, setReceiptProgress);
         updatedTransaction.receipt = receiptURL;
       }
 
       if (newProductImage) {
-        const productImageURL = await handleImageUpload(newProductImage, () => {});
+        const productImageURL = await handleImageUpload(newProductImage, setProductImageProgress);
         updatedTransaction.productImage = productImageURL;
       }
 
@@ -201,7 +229,7 @@ const SingleTransactionEdit = () => {
     }));
   };
 
-  const handleFileChange = (e, setFile, setPreview) => {
+  const handleFileChange = async (e, setFile, setPreview, setProgress) => {
     const file = e.target.files[0];
     if (file) {
       setFile(file);
@@ -210,6 +238,13 @@ const SingleTransactionEdit = () => {
         setPreview(reader.result);
       };
       reader.readAsDataURL(file);
+
+      try {
+        const compressedFile = await compressImage(file);
+        setFile(compressedFile);
+      } catch (error) {
+        console.error("Error compressing image:", error);
+      }
     }
   };
 
@@ -266,16 +301,18 @@ const SingleTransactionEdit = () => {
             <Form.Label style={labelStyle}>Receipt</Form.Label>
             <UploadBox
               label="Receipt"
-              onChange={(e) => handleFileChange(e, setNewReceipt, setReceiptPreview)}
+              onChange={(e) => handleFileChange(e, setNewReceipt, setReceiptPreview, setReceiptProgress)}
               preview={receiptPreview}
+              progress={receiptProgress}
             />
           </Col>
           <Col xs={6}>
             <Form.Label style={labelStyle}>Product Image</Form.Label>
             <UploadBox
               label="Product Image"
-              onChange={(e) => handleFileChange(e, setNewProductImage, setProductImagePreview)}
+              onChange={(e) => handleFileChange(e, setNewProductImage, setProductImagePreview, setProductImageProgress)}
               preview={productImagePreview}
+              progress={productImageProgress}
             />
           </Col>
         </Row>
