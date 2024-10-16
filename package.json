@@ -8,6 +8,7 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.5",
     "bootstrap": "^5.3.3",
+    "browser-image-compression": "^2.0.2",
     "chart.js": "^4.4.4",
     "date-fns": "^3.6.0",
     "firebase": "^10.13.0",
