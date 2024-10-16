@@ -69,13 +69,26 @@ export const getCurrencyDecimals = (currencyCode) => {
 };
 // Define a list of categories for your application
 export const defaultCategory = [
-  { id: 'food', name: 'Food' },
-  { id: 'transportation', name: 'Transportation' },
-  { id: 'accommodation', name: 'Accommodation' },
-  { id: 'entertainment', name: 'Entertainment' },
-  { id: 'shopping', name: 'Shopping' },
-  { id: 'utilities', name: 'Utilities' },
-  // Add more categories as needed
+  { id: 'food', name: 'Food', color: '#FF8C00' },                  // Dark Orange
+  { id: 'leisure', name: 'Leisure', color: '#FF6347' },           // Tomato Red
+  { id: 'accommodation', name: 'Accommodation', color: '#4682B4' },  // Steel Blue
+  { id: 'utilities', name: 'Utilities', color: '#32CD32' },     // Lime Green
+  { id: 'transport', name: 'Transport', color: '#FFD700' },     // Gold
+  { id: 'grocery', name: 'Grocery', color: '#FFA07A' },         // Light Salmon
+  { id: 'sport', name: 'Sport', color: '#20B2AA' },             // Light Sea Green
+  { id: 'medical', name: 'Medical', color: '#FF4500' },         // Orange Red
+  { id: 'mistake', name: 'Mistake', color: '#DC143C' },         // Crimson
+  { id: 'household', name: 'Household', color: '#8A2BE2' },     // Blue Violet
+  { id: 'social', name: 'Social', color: '#FF69B4' },           // Hot Pink
+  { id: 'donation', name: 'Donation', color: '#B22222' },       // Fire Brick
+  { id: 'hiring', name: 'Hiring', color: '#2E8B57' }   ,         // Sea Green
+   { id: 'laundry', name: 'Laundry', color: '#87CEEB' },         // Sky Blue
+  { id: 'phone_bills', name: 'Phone Bills', color: '#9370DB' }, // Medium Purple
+  { id: 'gamble', name: 'Gamble', color: '#FF4500' },           // Orange Red
+  { id: 'parents', name: 'Parents', color: '#8B4513' },         // Saddle Brown
+  { id: 'kids', name: 'Kids', color: '#FFDAB9' },               // Peach Puff
+  { id: 'self_learning', name: 'Self-Learning', color: '#48D1CC' }, // Medium Turquoise
+  { id: 'love_partners', name: 'Love Partners', color: '#FFB6C1' }  // Light Pink
 ];
 
 // Simplified payment types
@@ -108,19 +121,8 @@ export const debitCards = [
 ];
 
 export const investmentPlatforms = [
-  'Robinhood',
-  'E*TRADE',
-  'Fidelity',
-  'Charles Schwab',
-  'TD Ameritrade',
-  'Interactive Brokers',
-  'Vanguard',
-  'Merrill Edge',
-  'Webull',
-  'Coinbase',
-  'Binance',
-  'Kraken',
-  // Add more platforms as needed
+  { country: 'USA', platforms: ['Robinhood', 'Fidelity', 'Webull', 'Binance', 'Coinbase'] },
+  { country: 'Singapore', platforms: ['ABC', 'XYZ'] }
 ];
 
 export const investmentTypes = [

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, ListGroup, Modal, Alert, InputGroup, Badge } from 'react-bootstrap';
+import { Container, Form, ListGroup, Modal, Alert, InputGroup, Badge, Dropdown } from 'react-bootstrap';
 import { auth, db } from '../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { currencyList } from '../data/General';
+import { currencyList, defaultCategory, investmentPlatforms } from '../data/General';
 import { HexColorPicker } from 'react-colorful';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaUpload } from 'react-icons/fa';
 
 const InitialSetup = () => {
   const [user, setUser] = useState(null);
@@ -33,17 +33,16 @@ const InitialSetup = () => {
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedCategoryForColor, setSelectedCategoryForColor] = useState(null);
-  const vintageColors = [
-    '#8B4513', '#A0522D', '#CD853F', '#DEB887', '#D2691E',
-    '#B8860B', '#DAA520', '#FFD700', '#F4A460', '#D2B48C',
-    '#FFDAB9', '#FFA07A', '#FF7F50', '#FF6347', '#FF4500',
-    '#FFA500', '#FF8C00', '#FAF0E6', '#FAEBD7', '#FFE4B5'
-  ];
 
-  const getRandomColor = () => {
-    return vintageColors[Math.floor(Math.random() * vintageColors.length)];
-  };
-  
+  const [showLoadCategoriesModal, setShowLoadCategoriesModal] = useState(false);
+  const [categoriesToLoad, setCategoriesToLoad] = useState([]);
+
+  const [showLoadPlatformsModal, setShowLoadPlatformsModal] = useState(false);
+  const [platformsToLoad, setPlatformsToLoad] = useState([]);
+  const [selectedCountry, setSelectedCountry] = useState('');
+
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
@@ -67,42 +66,35 @@ const InitialSetup = () => {
         setCategories(userData.categories || []);
         setPaymentMethods(userData.paymentMethods || []);
         setPlatforms(userData.investmentPlatforms || []);
+        setSelectedCountry(userData.country || '');
       }
     } catch (err) {
       setError('Failed to fetch user data');
     }
   };
 
-  const handleMainCurrencyChange = (e) => {
-    setMainCurrency(e.target.value);
-  };
-
-  const handleFavoriteCurrencyChange = (e) => {
-    const currencies = Array.from(e.target.selectedOptions, option => option.value);
-    setFavoriteCurrencies(currencies);
-  };
-
-  const handleSave = async () => {
+  const saveUserData = async (data) => {
     try {
       if (user) {
-        await updateDoc(doc(db, 'users', user.uid), {
-          mainCurrency,
-          favoriteCurrencies,
-          categories,
-          paymentMethods,
-          investmentPlatforms: platforms
-        });
-        setSuccess('Settings saved successfully');
+        await updateDoc(doc(db, 'users', user.uid), data);
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
       }
     } catch (err) {
       setError('Failed to save settings');
     }
   };
 
-  const handleEditCategory = (index) => {
-    setEditCategoryIndex(index);
-    setNewCategory(categories[index]);
-    setShowCategoryModal(true);
+  const handleMainCurrencyChange = (e) => {
+    const newMainCurrency = e.target.value;
+    setMainCurrency(newMainCurrency);
+    saveUserData({ mainCurrency: newMainCurrency });
+  };
+
+  const handleFavoriteCurrencyChange = (e) => {
+    const newFavoriteCurrencies = Array.from(e.target.selectedOptions, option => option.value);
+    setFavoriteCurrencies(newFavoriteCurrencies);
+    saveUserData({ favoriteCurrencies: newFavoriteCurrencies });
   };
 
   const handleAddOrUpdateCategory = () => {
@@ -114,15 +106,10 @@ const InitialSetup = () => {
       updatedCategories = [...categories, { ...newCategory, id: Date.now().toString() }];
     }
     setCategories(updatedCategories);
+    saveUserData({ categories: updatedCategories });
     setShowCategoryModal(false);
     setNewCategory({ name: '', color: '#000000' });
     setEditCategoryIndex(null);
-  };
-
-  const handleEditPaymentMethod = (index) => {
-    setEditPaymentMethodIndex(index);
-    setNewPaymentMethod(paymentMethods[index]);
-    setShowPaymentMethodModal(true);
   };
 
   const handleAddOrUpdatePaymentMethod = () => {
@@ -134,15 +121,10 @@ const InitialSetup = () => {
       updatedMethods = [...paymentMethods, newPaymentMethod];
     }
     setPaymentMethods(updatedMethods);
+    saveUserData({ paymentMethods: updatedMethods });
     setShowPaymentMethodModal(false);
     setNewPaymentMethod({ type: 'Credit Card', details: {} });
     setEditPaymentMethodIndex(null);
-  };
-
-  const handleEditPlatform = (index) => {
-    setEditPlatformIndex(index);
-    setNewPlatform(platforms[index]);
-    setShowPlatformModal(true);
   };
 
   const handleAddOrUpdatePlatform = () => {
@@ -154,6 +136,7 @@ const InitialSetup = () => {
       updatedPlatforms = [...platforms, newPlatform];
     }
     setPlatforms(updatedPlatforms);
+    saveUserData({ investmentPlatforms: updatedPlatforms });
     setShowPlatformModal(false);
     setNewPlatform('');
     setEditPlatformIndex(null);
@@ -166,12 +149,19 @@ const InitialSetup = () => {
 
   const confirmDelete = () => {
     if (itemToDelete) {
+      let updatedData;
       if (itemToDelete.type === 'category') {
-        setCategories(categories.filter(cat => cat !== itemToDelete.item));
+        updatedData = categories.filter(cat => cat !== itemToDelete.item);
+        setCategories(updatedData);
+        saveUserData({ categories: updatedData });
       } else if (itemToDelete.type === 'paymentMethod') {
-        setPaymentMethods(paymentMethods.filter(method => method !== itemToDelete.item));
+        updatedData = paymentMethods.filter(method => method !== itemToDelete.item);
+        setPaymentMethods(updatedData);
+        saveUserData({ paymentMethods: updatedData });
       } else if (itemToDelete.type === 'platform') {
-        setPlatforms(platforms.filter(platform => platform !== itemToDelete.item));
+        updatedData = platforms.filter(platform => platform !== itemToDelete.item);
+        setPlatforms(updatedData);
+        saveUserData({ investmentPlatforms: updatedData });
       }
     }
     setShowDeleteConfirmModal(false);
@@ -180,19 +170,15 @@ const InitialSetup = () => {
 
   const getPaymentMethodBadgeColor = (type) => {
     switch (type) {
-      case 'E-Wallet':
-        return 'primary';
-      case 'Debit Card':
-        return 'success';
-      case 'Credit Card':
-        return 'danger';
-      default:
-        return 'secondary';
+      case 'E-Wallet': return 'primary';
+      case 'Debit Card': return 'success';
+      case 'Credit Card': return 'danger';
+      default: return 'secondary';
     }
   };
 
   const getPaymentMethodDisplay = (method) => {
-    if (method.type === 'E-Wallet') return method.details.name;
+    if (method.type === 'E-Wallet') return `${method.details.name} (${method.details.linkedCard || 'No linked card'})`;
     if (method.type === 'Credit Card') {
       return `${method.details.bank} - ${method.details.last4} - ${method.details.name || 'Card'}`;
     }
@@ -202,25 +188,67 @@ const InitialSetup = () => {
     return method.type;
   };
 
+  const handleLoadCategories = () => {
+    const categoriesToLoad = defaultCategory.map(defaultCat => {
+      const existingCategory = categories.find(cat => cat.id === defaultCat.id);
+      return {
+        ...defaultCat,
+        selected: !!existingCategory,
+        existing: !!existingCategory
+      };
+    });
+    setCategoriesToLoad(categoriesToLoad);
+    setShowLoadCategoriesModal(true);
+  };
+
+  const handleLoadSelectedCategories = () => {
+    const selectedCategories = categoriesToLoad.filter(cat => cat.selected && !cat.existing);
+    const updatedCategories = [...categories, ...selectedCategories];
+    setCategories(updatedCategories);
+    saveUserData({ categories: updatedCategories });
+    setShowLoadCategoriesModal(false);
+  };
+
+  const handleLoadPlatforms = () => {
+    const platformsToLoad = investmentPlatforms.find(country => country.country === selectedCountry)?.platforms || [];
+    setPlatformsToLoad(platformsToLoad.map(platform => ({
+      name: platform,
+      selected: platforms.includes(platform),
+      existing: platforms.includes(platform)
+    })));
+    setShowLoadPlatformsModal(true);
+  };
+
+  const handleLoadSelectedPlatforms = () => {
+    const selectedPlatforms = platformsToLoad.filter(platform => platform.selected && !platform.existing).map(platform => platform.name);
+    const updatedPlatforms = [...platforms, ...selectedPlatforms];
+    setPlatforms(updatedPlatforms);
+    saveUserData({ investmentPlatforms: updatedPlatforms });
+    setShowLoadPlatformsModal(false);
+  };
 
   return (
     <Container className="mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Initial Setup</h2>
-        <Button
-          variant="primary"
-          onClick={handleSave}
+      {showSuccessMessage && (
+        <Alert 
+          variant="success" 
           style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
             padding: '10px 20px',
-            fontSize: '16px',
-            borderRadius: '4px',
+            borderRadius: '5px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}
         >
-          Save All Settings
-        </Button>
-      </div>
+          Settings updated successfully
+        </Alert>
+      )}
+
+      <h2>Initial Setup</h2>
       {error && <Alert variant="danger">{error}</Alert>}
-      {success && <Alert variant="success">{success}</Alert>}
 
       <Form>
         <Form.Group className="mb-3">
@@ -243,81 +271,94 @@ const InitialSetup = () => {
 
         <div className="d-flex justify-content-between align-items-center">
           <h3 className="mt-3">Categories</h3>
-          <Button onClick={() => setShowCategoryModal(true)}>
-            <FaPlus />
-          </Button>
+          <div>
+            <FaUpload onClick={handleLoadCategories} style={{ cursor: 'pointer', marginRight: '10px' }} />
+            <FaPlus onClick={() => setShowCategoryModal(true)} style={{ cursor: 'pointer' }} />
+          </div>
         </div>
-        <ListGroup className="mb-3">
-          {categories.map((category, index) => (
-            <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '30px',
-                    height: '30px',
-                    backgroundColor: `${category.color}B3`,
-                    marginRight: '10px',
-                  }}
-                />
-                {category.name}
-              </div>
-              <div>
-                <Button variant="light" size="sm" onClick={() => handleEditCategory(index)} className="me-2">
-                  <FaEdit />
-                </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(category, 'category')}>
-                  <FaTrash />
-                </Button>
-              </div>
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
+        {categories.length === 0 ? (
+          <Alert variant="info">No categories added yet. Click the plus icon to add a category.</Alert>
+        ) : (
+          <ListGroup className="mb-3">
+            {categories.map((category, index) => (
+              <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      backgroundColor: `${category.color}B3`,
+                      marginRight: '10px',
+                      borderRadius: '4px'
+                    }}
+                  />
+                  {category.name}
+                </div>
+                <div>
+                  <FaEdit onClick={() => {
+                    setEditCategoryIndex(index);
+                    setNewCategory(categories[index]);
+                    setShowCategoryModal(true);
+                  }} style={{ cursor: 'pointer', marginRight: '10px' }} />
+                  <FaTrash onClick={() => handleDelete(category, 'category')} style={{ cursor: 'pointer', color: 'red' }} />
+                </div>
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+        )}
 
         <div className="d-flex justify-content-between align-items-center">
           <h3 className="mt-3">Payment Methods</h3>
-          <Button onClick={() => setShowPaymentMethodModal(true)}>
-            <FaPlus />
-          </Button>
+          <FaPlus onClick={() => setShowPaymentMethodModal(true)} style={{ cursor: 'pointer' }} />
         </div>
-        <ListGroup className="mb-3">
-          {paymentMethods.map((method, index) => (
-            <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-              <Badge bg={getPaymentMethodBadgeColor(method.type)}>
-                {getPaymentMethodDisplay(method)}
-              </Badge>
-              <div>
-                <Button variant="light" size="sm" onClick={() => handleEditPaymentMethod(index)} className="me-2">
-                  <FaEdit />
-                </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(method, 'paymentMethod')}>
-                  <FaTrash />
-                </Button>
-              </div>
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
+        {paymentMethods.length === 0 ? (
+          <Alert variant="info">No payment methods added yet. Click the plus icon to add a payment method.</Alert>
+        ) : (
+          <ListGroup className="mb-3">
+            {paymentMethods.map((method, index) => (
+              <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+                <Badge bg={getPaymentMethodBadgeColor(method.type)}>
+                  {getPaymentMethodDisplay(method)}
+                </Badge>
+                <div>
+                  <FaEdit onClick={() => {
+                    setEditPaymentMethodIndex(index);
+                    setNewPaymentMethod(paymentMethods[index]);
+                    setShowPaymentMethodModal(true);
+                  }} style={{ cursor: 'pointer', marginRight: '10px' }} />
+                  <FaTrash onClick={() => handleDelete(method, 'paymentMethod')} style={{ cursor: 'pointer', color: 'red' }} />
+                </div>
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+        )}
 
         <div className="d-flex justify-content-between align-items-center">
           <h3 className="mt-3">Investment Platforms</h3>
-          <Button onClick={() => setShowPlatformModal(true)}>
-            <FaPlus />
-          </Button>
+          <div>
+            <FaUpload onClick={handleLoadPlatforms} style={{ cursor: 'pointer', marginRight: '10px' }} />
+            <FaPlus onClick={() => setShowPlatformModal(true)} style={{ cursor: 'pointer' }} />
+          </div>
         </div>
-        <ListGroup className="mb-3">
-          {platforms.map((platform, index) => (
-            <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-              {platform}
-              <div>
-                <Button variant="light" size="sm" onClick={() => handleEditPlatform(index)} className="me-2">
-                  <FaEdit />
-                </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(platform, 'platform')}>
-                  <FaTrash />
-                </Button>
-              </div>
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
+        {platforms.length === 0 ? (
+          <Alert variant="info">No investment platforms added yet. Click the plus icon to add a platform.</Alert>
+        ) : (
+          <ListGroup className="mb-3">
+            {platforms.map((platform, index) => (
+              <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+                {platform}
+                <div>
+                  <FaEdit onClick={() => {
+                    setEditPlatformIndex(index);
+                    setNewPlatform(platforms[index]);
+                    setShowPlatformModal(true);
+                  }} style={{ cursor: 'pointer', marginRight: '10px' }} />
+                  <FaTrash onClick={() => handleDelete(platform, 'platform')} style={{ cursor: 'pointer', color: 'red' }} />
+                </div>
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+        )}
       </Form>
 
       {/* Modals */}
@@ -327,7 +368,6 @@ const InitialSetup = () => {
         </Modal.Header>
         <Modal.Body>
           <Form.Group className="mb-3">
-            <Form.Label>Category Name</Form.Label>
             <Form.Control
               type="text"
               placeholder="Enter category name"
@@ -335,42 +375,35 @@ const InitialSetup = () => {
               onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
             />
           </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Category Color</Form.Label>
-            <InputGroup>
-              <Form.Control
-                type="text"
-                value={newCategory.color}
-                onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+          <InputGroup>
+            <Form.Control
+              type="text"
+              value={newCategory.color}
+              onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+            />
+            <InputGroup.Text>
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: newCategory.color,
+                  border: '1px solid #000',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+                onClick={() => {
+                  setSelectedCategoryForColor(newCategory);
+                  setShowColorPicker(true);
+                }}
               />
-              <InputGroup.Text>
-                <div
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: newCategory.color,
-                    border: '1px solid #000',
-                  }}
-                />
-              </InputGroup.Text>
-            </InputGroup>
-            <Button
-              variant="light"
-              onClick={() => {
-                setSelectedCategoryForColor(newCategory);
-                setShowColorPicker(true);
-              }}
-              className="mt-2"
-            >
-              Pick Color
-            </Button>
-          </Form.Group>
+            </InputGroup.Text>
+          </InputGroup>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowCategoryModal(false)}>Close</Button>
-          <Button variant="primary" onClick={handleAddOrUpdateCategory}>
-            {editCategoryIndex !== null ? 'Update Category' : 'Add Category'}
-          </Button>
+          <div onClick={() => setShowCategoryModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
+          <div onClick={handleAddOrUpdateCategory} style={{ cursor: 'pointer' }}>
+            {editCategoryIndex !== null ? 'Update' : 'Add'}
+          </div>
         </Modal.Footer>
       </Modal>
 
@@ -443,28 +476,50 @@ const InitialSetup = () => {
             </Form.Group>
           )}
           {newPaymentMethod.type === 'E-Wallet' && (
-            <Form.Group className="mb-3">
-              <Form.Label>Wallet Name</Form.Label>
-              <Form.Control 
-                type="text" 
-                placeholder="Enter wallet name"
-                value={newPaymentMethod.details.name || ''}
-                onChange={(e) => setNewPaymentMethod({
-                  ...newPaymentMethod, 
-                  details: { 
-                    ...newPaymentMethod.details, 
-                    name: e.target.value 
-                  }
-                })}
-              />
-            </Form.Group>
+            <>
+              <Form.Group className="mb-3">
+                <Form.Label>Wallet Name</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  placeholder="Enter wallet name"
+                  value={newPaymentMethod.details.name || ''}
+                  onChange={(e) => setNewPaymentMethod({
+                    ...newPaymentMethod, 
+                    details: { 
+                      ...newPaymentMethod.details, 
+                      name: e.target.value 
+                    }
+                  })}
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Linked Card</Form.Label>
+                <Form.Select
+                  value={newPaymentMethod.details.linkedCard || ''}
+                  onChange={(e) => setNewPaymentMethod({
+                    ...newPaymentMethod,
+                    details: {
+                      ...newPaymentMethod.details,
+                      linkedCard: e.target.value
+                    }
+                  })}
+                >
+                  <option value="">Select a linked card</option>
+                  {paymentMethods.filter(method => method.type === 'Credit Card' || method.type === 'Debit Card').map((card, index) => (
+                    <option key={index} value={`${card.type} - ${card.details.bank} - ${card.details.last4}`}>
+                      {`${card.type} - ${card.details.bank} - ${card.details.last4}`}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowPaymentMethodModal(false)}>Close</Button>
-          <Button variant="primary" onClick={handleAddOrUpdatePaymentMethod}>
-            {editPaymentMethodIndex !== null ? 'Update Payment Method' : 'Add Payment Method'}
-          </Button>
+          <div onClick={() => setShowPaymentMethodModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
+          <div onClick={handleAddOrUpdatePaymentMethod} style={{ cursor: 'pointer' }}>
+            {editPaymentMethodIndex !== null ? 'Update' : 'Add'}
+          </div>
         </Modal.Footer>
       </Modal>
 
@@ -481,10 +536,10 @@ const InitialSetup = () => {
           />
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowPlatformModal(false)}>Close</Button>
-          <Button variant="primary" onClick={handleAddOrUpdatePlatform}>
-            {editPlatformIndex !== null ? 'Update Platform' : 'Add Platform'}
-          </Button>
+          <div onClick={() => setShowPlatformModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
+          <div onClick={handleAddOrUpdatePlatform} style={{ cursor: 'pointer' }}>
+            {editPlatformIndex !== null ? 'Update' : 'Add'}
+          </div>
         </Modal.Footer>
       </Modal>
 
@@ -496,8 +551,8 @@ const InitialSetup = () => {
           Are you sure you want to delete this item?
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteConfirmModal(false)}>Cancel</Button>
-          <Button variant="danger" onClick={confirmDelete}>Delete</Button>
+          <div onClick={() => setShowDeleteConfirmModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Cancel</div>
+          <div onClick={confirmDelete} style={{ cursor: 'pointer', color: 'red' }}>Delete</div>
         </Modal.Footer>
       </Modal>
 
@@ -514,16 +569,91 @@ const InitialSetup = () => {
           />
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowColorPicker(false)}>Close</Button>
-          <Button variant="primary" onClick={() => {
+          <div onClick={() => setShowColorPicker(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
+          <div onClick={() => {
             const updatedCategories = categories.map(category => 
               category.id === selectedCategoryForColor?.id ? { ...category, color: selectedCategoryForColor.color } : category
             );
             setCategories(updatedCategories);
+            saveUserData({ categories: updatedCategories });
             setShowColorPicker(false);
-          }}>
+          }} style={{ cursor: 'pointer' }}>
             Save Color
-          </Button>
+          </div>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showLoadCategoriesModal} onHide={() => setShowLoadCategoriesModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Load Categories</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {categoriesToLoad.map((category, index) => (
+            <Form.Check 
+              key={index}
+              type="checkbox"
+              id={`category-${category.id}`}
+              label={category.name}
+              checked={category.selected}
+              disabled={category.existing}
+              onChange={() => {
+                const updatedCategories = [...categoriesToLoad];
+                updatedCategories[index].selected = !updatedCategories[index].selected;
+                setCategoriesToLoad(updatedCategories);
+              }}
+            />
+          ))}
+        </Modal.Body>
+        <Modal.Footer>
+          <div onClick={() => setShowLoadCategoriesModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Cancel</div>
+          <div onClick={handleLoadSelectedCategories} style={{ cursor: 'pointer' }}>Load Selected</div>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showLoadPlatformsModal} onHide={() => setShowLoadPlatformsModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Load Investment Platforms</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Country</Form.Label>
+            <Form.Select 
+              value={selectedCountry} 
+              onChange={(e) => {
+                setSelectedCountry(e.target.value);
+                const platformsToLoad = investmentPlatforms.find(country => country.country === e.target.value)?.platforms || [];
+                setPlatformsToLoad(platformsToLoad.map(platform => ({
+                  name: platform,
+                  selected: platforms.includes(platform),
+                  existing: platforms.includes(platform)
+                })));
+              }}
+            >
+              <option value="">Select a country</option>
+              {investmentPlatforms.map((country, index) => (
+                <option key={index} value={country.country}>{country.country}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+          {platformsToLoad.map((platform, index) => (
+            <Form.Check 
+              key={index}
+              type="checkbox"
+              id={`platform-${index}`}
+              label={platform.name}
+              checked={platform.selected}
+              disabled={platform.existing}
+              onChange={() => {
+                const updatedPlatforms = [...platformsToLoad];
+                updatedPlatforms[index].selected = !updatedPlatforms[index].selected;
+                setPlatformsToLoad(updatedPlatforms);
+              }}
+            />
+          ))}
+        </Modal.Body>
+        <Modal.Footer>
+          <div onClick={() => setShowLoadPlatformsModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Cancel</div>
+          <div onClick={handleLoadSelectedPlatforms} style={{ cursor: 'pointer' }}>Load Selected</div>
         </Modal.Footer>
       </Modal>
     </Container>
