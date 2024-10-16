@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, ListGroup, Modal, Alert, InputGroup, Badge, Dropdown } from 'react-bootstrap';
+import { Container, Form, ListGroup, Modal, Alert, InputGroup, Badge, Button } from 'react-bootstrap';
 import { auth, db } from '../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { currencyList, defaultCategory, investmentPlatforms } from '../data/General';
@@ -13,6 +13,7 @@ const InitialSetup = () => {
   const [categories, setCategories] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [platforms, setPlatforms] = useState([]);
+  const [tags, setTags] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -22,11 +23,19 @@ const InitialSetup = () => {
 
   const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
   const [editPaymentMethodIndex, setEditPaymentMethodIndex] = useState(null);
-  const [newPaymentMethod, setNewPaymentMethod] = useState({ type: 'Credit Card', details: {} });
+  const [newPaymentMethod, setNewPaymentMethod] = useState({ 
+    type: 'Credit Card', 
+    details: {},
+    linkedCard: null
+  });
 
   const [showPlatformModal, setShowPlatformModal] = useState(false);
   const [editPlatformIndex, setEditPlatformIndex] = useState(null);
   const [newPlatform, setNewPlatform] = useState('');
+
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [editTagIndex, setEditTagIndex] = useState(null);
+  const [newTag, setNewTag] = useState('');
 
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -40,8 +49,6 @@ const InitialSetup = () => {
   const [showLoadPlatformsModal, setShowLoadPlatformsModal] = useState(false);
   const [platformsToLoad, setPlatformsToLoad] = useState([]);
   const [selectedCountry, setSelectedCountry] = useState('');
-
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -66,7 +73,11 @@ const InitialSetup = () => {
         setCategories(userData.categories || []);
         setPaymentMethods(userData.paymentMethods || []);
         setPlatforms(userData.investmentPlatforms || []);
-        setSelectedCountry(userData.country || '');
+        setTags(userData.tags || []);
+        
+        // Set the selected country based on the main currency
+        const currencyInfo = currencyList.find(c => c.code === userData.mainCurrency);
+        setSelectedCountry(currencyInfo ? currencyInfo.country : '');
       }
     } catch (err) {
       setError('Failed to fetch user data');
@@ -77,8 +88,8 @@ const InitialSetup = () => {
     try {
       if (user) {
         await updateDoc(doc(db, 'users', user.uid), data);
-        setShowSuccessMessage(true);
-        setTimeout(() => setShowSuccessMessage(false), 3000);
+        setSuccess('Settings updated successfully');
+        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
       setError('Failed to save settings');
@@ -88,6 +99,11 @@ const InitialSetup = () => {
   const handleMainCurrencyChange = (e) => {
     const newMainCurrency = e.target.value;
     setMainCurrency(newMainCurrency);
+    
+    // Update selected country when main currency changes
+    const currencyInfo = currencyList.find(c => c.code === newMainCurrency);
+    setSelectedCountry(currencyInfo ? currencyInfo.country : '');
+    
     saveUserData({ mainCurrency: newMainCurrency });
   };
 
@@ -123,7 +139,7 @@ const InitialSetup = () => {
     setPaymentMethods(updatedMethods);
     saveUserData({ paymentMethods: updatedMethods });
     setShowPaymentMethodModal(false);
-    setNewPaymentMethod({ type: 'Credit Card', details: {} });
+    setNewPaymentMethod({ type: 'Credit Card', details: {}, linkedCard: null });
     setEditPaymentMethodIndex(null);
   };
 
@@ -140,6 +156,21 @@ const InitialSetup = () => {
     setShowPlatformModal(false);
     setNewPlatform('');
     setEditPlatformIndex(null);
+  };
+
+  const handleAddOrUpdateTag = () => {
+    let updatedTags;
+    if (editTagIndex !== null) {
+      updatedTags = [...tags];
+      updatedTags[editTagIndex] = newTag;
+    } else {
+      updatedTags = [...tags, newTag];
+    }
+    setTags(updatedTags);
+    saveUserData({ tags: updatedTags });
+    setShowTagModal(false);
+    setNewTag('');
+    setEditTagIndex(null);
   };
 
   const handleDelete = (item, type) => {
@@ -162,6 +193,10 @@ const InitialSetup = () => {
         updatedData = platforms.filter(platform => platform !== itemToDelete.item);
         setPlatforms(updatedData);
         saveUserData({ investmentPlatforms: updatedData });
+      } else if (itemToDelete.type === 'tag') {
+        updatedData = tags.filter(tag => tag !== itemToDelete.item);
+        setTags(updatedData);
+        saveUserData({ tags: updatedData });
       }
     }
     setShowDeleteConfirmModal(false);
@@ -173,17 +208,21 @@ const InitialSetup = () => {
       case 'E-Wallet': return 'primary';
       case 'Debit Card': return 'success';
       case 'Credit Card': return 'danger';
+      case 'Platform': return 'warning';
+      case 'Cash': return 'secondary';
       default: return 'secondary';
     }
   };
 
   const getPaymentMethodDisplay = (method) => {
-    if (method.type === 'E-Wallet') return `${method.details.name} (${method.details.linkedCard || 'No linked card'})`;
-    if (method.type === 'Credit Card') {
-      return `${method.details.bank} - ${method.details.last4} - ${method.details.name || 'Card'}`;
+    if (method.type === 'Platform') {
+      return `${method.details.name} (${method.linkedCard})`;
     }
-    if (method.type === 'Debit Card') {
-      return `${method.details.bank} - ${method.details.last4}`;
+    if (method.type === 'E-Wallet') {
+      return method.details.name;
+    }
+    if (method.type === 'Credit Card' || method.type === 'Debit Card') {
+      return `${method.type}: ${method.details.bank} - ${method.details.last4}`;
     }
     return method.type;
   };
@@ -229,7 +268,7 @@ const InitialSetup = () => {
 
   return (
     <Container className="mt-4">
-      {showSuccessMessage && (
+      {success && (
         <Alert 
           variant="success" 
           style={{
@@ -243,7 +282,7 @@ const InitialSetup = () => {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}
         >
-          Settings updated successfully
+          {success}
         </Alert>
       )}
 
@@ -276,62 +315,62 @@ const InitialSetup = () => {
             <FaPlus onClick={() => setShowCategoryModal(true)} style={{ cursor: 'pointer' }} />
           </div>
         </div>
-        {categories.length === 0 ? (
-          <Alert variant="info">No categories added yet. Click the plus icon to add a category.</Alert>
-        ) : (
-          <ListGroup className="mb-3">
-            {categories.map((category, index) => (
-              <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div
-                    style={{
-                      width: '30px',
-                      height: '30px',
-                      backgroundColor: `${category.color}B3`,
-                      marginRight: '10px',
-                      borderRadius: '4px'
-                    }}
-                  />
-                  {category.name}
-                </div>
-                <div>
-                  <FaEdit onClick={() => {
-                    setEditCategoryIndex(index);
-                    setNewCategory(categories[index]);
-                    setShowCategoryModal(true);
-                  }} style={{ cursor: 'pointer', marginRight: '10px' }} />
-                  <FaTrash onClick={() => handleDelete(category, 'category')} style={{ cursor: 'pointer', color: 'red' }} />
-                </div>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        )}
+        <ListGroup className="mb-3">
+          {categories.map((category, index) => (
+            <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    backgroundColor: `${category.color}B3`,
+                    marginRight: '10px',
+                    borderRadius: '4px'
+                  }}
+                />
+                {category.name}
+              </div>
+              <div>
+                <Button variant="outline-primary" size="sm" onClick={() => {
+                  setEditCategoryIndex(index);
+                  setNewCategory(categories[index]);
+                  setShowCategoryModal(true);
+                }} className="me-2">
+                  <FaEdit />
+                </Button>
+                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(category, 'category')}>
+                  <FaTrash />
+                </Button>
+              </div>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
 
         <div className="d-flex justify-content-between align-items-center">
           <h3 className="mt-3">Payment Methods</h3>
           <FaPlus onClick={() => setShowPaymentMethodModal(true)} style={{ cursor: 'pointer' }} />
         </div>
-        {paymentMethods.length === 0 ? (
-          <Alert variant="info">No payment methods added yet. Click the plus icon to add a payment method.</Alert>
-        ) : (
-          <ListGroup className="mb-3">
-            {paymentMethods.map((method, index) => (
-              <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-                <Badge bg={getPaymentMethodBadgeColor(method.type)}>
-                  {getPaymentMethodDisplay(method)}
-                </Badge>
-                <div>
-                  <FaEdit onClick={() => {
-                    setEditPaymentMethodIndex(index);
-                    setNewPaymentMethod(paymentMethods[index]);
-                    setShowPaymentMethodModal(true);
-                  }} style={{ cursor: 'pointer', marginRight: '10px' }} />
-                  <FaTrash onClick={() => handleDelete(method, 'paymentMethod')} style={{ cursor: 'pointer', color: 'red' }} />
-                </div>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        )}
+        <ListGroup className="mb-3">
+          {paymentMethods.map((method, index) => (
+            <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+              <Badge bg={getPaymentMethodBadgeColor(method.type)}>
+                {getPaymentMethodDisplay(method)}
+              </Badge>
+              <div>
+                <Button variant="outline-primary" size="sm" onClick={() => {
+                  setEditPaymentMethodIndex(index);
+                  setNewPaymentMethod(paymentMethods[index]);
+                  setShowPaymentMethodModal(true);
+                }} className="me-2">
+                  <FaEdit />
+                </Button>
+                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(method, 'paymentMethod')}>
+                  <FaTrash />
+                </Button>
+              </div>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
 
         <div className="d-flex justify-content-between align-items-center">
           <h3 className="mt-3">Investment Platforms</h3>
@@ -340,25 +379,49 @@ const InitialSetup = () => {
             <FaPlus onClick={() => setShowPlatformModal(true)} style={{ cursor: 'pointer' }} />
           </div>
         </div>
-        {platforms.length === 0 ? (
-          <Alert variant="info">No investment platforms added yet. Click the plus icon to add a platform.</Alert>
-        ) : (
-          <ListGroup className="mb-3">
-            {platforms.map((platform, index) => (
-              <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-                {platform}
-                <div>
-                  <FaEdit onClick={() => {
-                    setEditPlatformIndex(index);
-                    setNewPlatform(platforms[index]);
-                    setShowPlatformModal(true);
-                  }} style={{ cursor: 'pointer', marginRight: '10px' }} />
-                  <FaTrash onClick={() => handleDelete(platform, 'platform')} style={{ cursor: 'pointer', color: 'red' }} />
-                </div>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        )}
+        <ListGroup className="mb-3">
+          {platforms.map((platform, index) => (
+            <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+              {platform}
+              <div>
+                <Button variant="outline-primary" size="sm" onClick={() => {
+                  setEditPlatformIndex(index);
+                  setNewPlatform(platforms[index]);
+                  setShowPlatformModal(true);
+                }} className="me-2">
+                  <FaEdit />
+                </Button>
+                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(platform, 'platform')}>
+                  <FaTrash />
+                </Button>
+              </div>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
+
+        <div className="d-flex justify-content-between align-items-center">
+          <h3 className="mt-3">Tags</h3>
+          <FaPlus onClick={() => setShowTagModal(true)} style={{ cursor: 'pointer' }} />
+        </div>
+        <ListGroup className="mb-3">
+          {tags.map((tag, index) => (
+            <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+              {tag}
+              <div>
+                <Button variant="outline-primary" size="sm" onClick={() => {
+                  setEditTagIndex(index);
+                  setNewTag(tags[index]);
+                  setShowTagModal(true);
+                }} className="me-2">
+                  <FaEdit />
+                </Button>
+                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(tag, 'tag')}>
+                  <FaTrash />
+                </Button>
+              </div>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
       </Form>
 
       {/* Modals */}
@@ -368,6 +431,7 @@ const InitialSetup = () => {
         </Modal.Header>
         <Modal.Body>
           <Form.Group className="mb-3">
+            <Form.Label>Category Name</Form.Label>
             <Form.Control
               type="text"
               placeholder="Enter category name"
@@ -375,35 +439,38 @@ const InitialSetup = () => {
               onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
             />
           </Form.Group>
-          <InputGroup>
-            <Form.Control
-              type="text"
-              value={newCategory.color}
-              onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-            />
-            <InputGroup.Text>
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: newCategory.color,
-                  border: '1px solid #000',
-                  cursor: 'pointer',
-                  borderRadius: '4px'
-                }}
-                onClick={() => {
-                  setSelectedCategoryForColor(newCategory);
-                  setShowColorPicker(true);
-                }}
+          <Form.Group className="mb-3">
+            <Form.Label>Category Color</Form.Label>
+            <InputGroup>
+              <Form.Control
+                type="text"
+                value={newCategory.color}
+                onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
               />
-            </InputGroup.Text>
-          </InputGroup>
+              <InputGroup.Text>
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    backgroundColor: newCategory.color,
+                    border: '1px solid #000',
+                    cursor: 'pointer',
+                    borderRadius: '4px'
+                  }}
+                  onClick={() => {
+                    setSelectedCategoryForColor(newCategory);
+                    setShowColorPicker(true);
+                  }}
+                />
+              </InputGroup.Text>
+            </InputGroup>
+          </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <div onClick={() => setShowCategoryModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
-          <div onClick={handleAddOrUpdateCategory} style={{ cursor: 'pointer' }}>
+          <Button variant="secondary" onClick={() => setShowCategoryModal(false)}>Close</Button>
+          <Button variant="primary" onClick={handleAddOrUpdateCategory}>
             {editCategoryIndex !== null ? 'Update' : 'Add'}
-          </div>
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -416,14 +483,15 @@ const InitialSetup = () => {
             <Form.Label>Type</Form.Label>
             <Form.Select 
               value={newPaymentMethod.type} 
-              onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, type: e.target.value, details: {} })}
+              onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, type: e.target.value, details: {}, linkedCard: null })}
             >
               <option value="Credit Card">Credit Card</option>
               <option value="Debit Card">Debit Card</option>
               <option value="E-Wallet">E-Wallet</option>
+              <option value="Platform">Platform</option>
             </Form.Select>
           </Form.Group>
-          {newPaymentMethod.type !== 'E-Wallet' && (
+          {newPaymentMethod.type !== 'E-Wallet' && newPaymentMethod.type !== 'Platform' && (
             <>
               <Form.Group className="mb-3">
                 <Form.Label>Bank Name</Form.Label>
@@ -458,12 +526,12 @@ const InitialSetup = () => {
               </Form.Group>
             </>
           )}
-          {newPaymentMethod.type === 'Credit Card' && (
+          {(newPaymentMethod.type === 'E-Wallet' || newPaymentMethod.type === 'Platform') && (
             <Form.Group className="mb-3">
-              <Form.Label>Card Name</Form.Label>
+              <Form.Label>Name</Form.Label>
               <Form.Control 
                 type="text" 
-                placeholder="Enter card name"
+                placeholder="Enter name"
                 value={newPaymentMethod.details.name || ''}
                 onChange={(e) => setNewPaymentMethod({
                   ...newPaymentMethod, 
@@ -475,51 +543,31 @@ const InitialSetup = () => {
               />
             </Form.Group>
           )}
-          {newPaymentMethod.type === 'E-Wallet' && (
-            <>
-              <Form.Group className="mb-3">
-                <Form.Label>Wallet Name</Form.Label>
-                <Form.Control 
-                  type="text" 
-                  placeholder="Enter wallet name"
-                  value={newPaymentMethod.details.name || ''}
-                  onChange={(e) => setNewPaymentMethod({
-                    ...newPaymentMethod, 
-                    details: { 
-                      ...newPaymentMethod.details, 
-                      name: e.target.value 
-                    }
-                  })}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Linked Card</Form.Label>
-                <Form.Select
-                  value={newPaymentMethod.details.linkedCard || ''}
-                  onChange={(e) => setNewPaymentMethod({
-                    ...newPaymentMethod,
-                    details: {
-                      ...newPaymentMethod.details,
-                      linkedCard: e.target.value
-                    }
-                  })}
-                >
-                  <option value="">Select a linked card</option>
-                  {paymentMethods.filter(method => method.type === 'Credit Card' || method.type === 'Debit Card').map((card, index) => (
-                    <option key={index} value={`${card.type} - ${card.details.bank} - ${card.details.last4}`}>
-                      {`${card.type} - ${card.details.bank} - ${card.details.last4}`}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </>
+          {newPaymentMethod.type === 'Platform' && (
+            <Form.Group className="mb-3">
+              <Form.Label>Linked Card</Form.Label>
+              <Form.Select
+                value={newPaymentMethod.linkedCard || ''}
+                onChange={(e) => setNewPaymentMethod({
+                  ...newPaymentMethod,
+                  linkedCard: e.target.value
+                })}
+              >
+                <option value="">Select a linked card</option>
+                {paymentMethods.filter(method => method.type === 'Credit Card' || method.type === 'Debit Card').map((card, index) => (
+                  <option key={index} value={`${card.type}-${card.details.last4}`}>
+                    {`${card.type}: ${card.details.bank} - ${card.details.last4}`}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <div onClick={() => setShowPaymentMethodModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
-          <div onClick={handleAddOrUpdatePaymentMethod} style={{ cursor: 'pointer' }}>
+          <Button variant="secondary" onClick={() => setShowPaymentMethodModal(false)}>Close</Button>
+          <Button variant="primary" onClick={handleAddOrUpdatePaymentMethod}>
             {editPaymentMethodIndex !== null ? 'Update' : 'Add'}
-          </div>
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -536,10 +584,30 @@ const InitialSetup = () => {
           />
         </Modal.Body>
         <Modal.Footer>
-          <div onClick={() => setShowPlatformModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
-          <div onClick={handleAddOrUpdatePlatform} style={{ cursor: 'pointer' }}>
+          <Button variant="secondary" onClick={() => setShowPlatformModal(false)}>Close</Button>
+          <Button variant="primary" onClick={handleAddOrUpdatePlatform}>
             {editPlatformIndex !== null ? 'Update' : 'Add'}
-          </div>
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showTagModal} onHide={() => setShowTagModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>{editTagIndex !== null ? 'Edit Tag' : 'Add Tag'}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Control
+            type="text"
+            placeholder="Enter tag name"
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowTagModal(false)}>Close</Button>
+          <Button variant="primary" onClick={handleAddOrUpdateTag}>
+            {editTagIndex !== null ? 'Update' : 'Add'}
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -551,8 +619,8 @@ const InitialSetup = () => {
           Are you sure you want to delete this item?
         </Modal.Body>
         <Modal.Footer>
-          <div onClick={() => setShowDeleteConfirmModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Cancel</div>
-          <div onClick={confirmDelete} style={{ cursor: 'pointer', color: 'red' }}>Delete</div>
+          <Button variant="secondary" onClick={() => setShowDeleteConfirmModal(false)}>Cancel</Button>
+          <Button variant="danger" onClick={confirmDelete}>Delete</Button>
         </Modal.Footer>
       </Modal>
 
@@ -569,17 +637,17 @@ const InitialSetup = () => {
           />
         </Modal.Body>
         <Modal.Footer>
-          <div onClick={() => setShowColorPicker(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Close</div>
-          <div onClick={() => {
+          <Button variant="secondary" onClick={() => setShowColorPicker(false)}>Close</Button>
+          <Button variant="primary" onClick={() => {
             const updatedCategories = categories.map(category => 
               category.id === selectedCategoryForColor?.id ? { ...category, color: selectedCategoryForColor.color } : category
             );
             setCategories(updatedCategories);
             saveUserData({ categories: updatedCategories });
             setShowColorPicker(false);
-          }} style={{ cursor: 'pointer' }}>
+          }}>
             Save Color
-          </div>
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -605,8 +673,8 @@ const InitialSetup = () => {
           ))}
         </Modal.Body>
         <Modal.Footer>
-          <div onClick={() => setShowLoadCategoriesModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Cancel</div>
-          <div onClick={handleLoadSelectedCategories} style={{ cursor: 'pointer' }}>Load Selected</div>
+          <Button variant="secondary" onClick={() => setShowLoadCategoriesModal(false)}>Cancel</Button>
+          <Button variant="primary" onClick={handleLoadSelectedCategories}>Load Selected</Button>
         </Modal.Footer>
       </Modal>
 
@@ -652,8 +720,8 @@ const InitialSetup = () => {
           ))}
         </Modal.Body>
         <Modal.Footer>
-          <div onClick={() => setShowLoadPlatformsModal(false)} style={{ cursor: 'pointer', marginRight: '10px' }}>Cancel</div>
-          <div onClick={handleLoadSelectedPlatforms} style={{ cursor: 'pointer' }}>Load Selected</div>
+          <Button variant="secondary" onClick={() => setShowLoadPlatformsModal(false)}>Cancel</Button>
+          <Button variant="primary" onClick={handleLoadSelectedPlatforms}>Load Selected</Button>
         </Modal.Footer>
       </Modal>
     </Container>
