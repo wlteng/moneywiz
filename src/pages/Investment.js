@@ -133,7 +133,7 @@ const Investment = () => {
             align-items: flex-end;
           }
           .amount-input {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             text-align: right;
             border: none;
