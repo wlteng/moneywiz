@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Container, Form, Button, InputGroup, Row, Col, Alert } from 'react-bootstrap';
 import { getCurrencyDecimals, currencyList } from '../data/General';
 import { addDoc, collection, doc, getDoc, query, orderBy, limit, getDocs, updateDoc, where } from 'firebase/firestore';
@@ -33,9 +33,15 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
   const [isSticky, setIsSticky] = useState(false);
   const originalHeaderRef = useRef(null);
   const stickyHeaderRef = useRef(null);
+  const [renderKey, setRenderKey] = useState(0);
 
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const inputRefs = useRef({});
+
+  useEffect(() => {
+    console.log('HomeInput: Received userCategories:', userCategories);
+    setRenderKey(prevKey => prevKey + 1);
+  }, [userCategories]);
 
   const fetchMonthlyTotals = useCallback(async (userId) => {
     try {
@@ -142,9 +148,12 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        const order = userData.fieldOrder || userCategories.map(cat => cat.id);
+        const order = (userData.fieldOrder || []).filter(id => userCategories.some(cat => cat.id === id));
+        console.log('Fetched and filtered field order:', order);
         setFieldOrder(order);
         setTempFieldOrder(order);
+      } else {
+        console.log('No user document found for field order');
       }
     } catch (err) {
       console.error("Error fetching field order:", err);
@@ -169,14 +178,14 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
         fetchUserMainCurrency(user.uid);
         fetchRecentTransactions(user.uid);
         fetchFavoriteCurrencies(user.uid);
-        fetchFieldOrder(user.uid);
         fetchRecentPaymentMethods(user.uid);
         fetchMonthlyTotals(user.uid);
+        fetchFieldOrder(user.uid);
       }
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [fetchUserMainCurrency, fetchRecentTransactions, fetchFavoriteCurrencies, fetchFieldOrder, fetchRecentPaymentMethods, fetchMonthlyTotals]);
+  }, [fetchUserMainCurrency, fetchRecentTransactions, fetchFavoriteCurrencies, fetchRecentPaymentMethods, fetchMonthlyTotals, fetchFieldOrder]);
 
   useEffect(() => {
     const convertAmounts = async () => {
@@ -216,6 +225,14 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  useEffect(() => {
+    console.log('State change detected:');
+    console.log('fieldOrder:', fieldOrder);
+    console.log('tempFieldOrder:', tempFieldOrder);
+    console.log('userCategories:', userCategories);
+    console.log('isReordering:', isReordering);
+  }, [fieldOrder, tempFieldOrder, userCategories, isReordering]);
 
   const handleMouseDown = (categoryId) => {
     const timer = setTimeout(() => {
@@ -426,6 +443,21 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
     }
   };
 
+  const categoriesToRender = useMemo(() => {
+    const orderToUse = isReordering ? tempFieldOrder : fieldOrder;
+    if (orderToUse.length > 0) {
+      const orderedCategories = orderToUse
+        .map(id => userCategories.find(cat => cat.id === id))
+        .filter(Boolean);
+      
+      // Add any categories that are not in the field order
+      const missingCategories = userCategories.filter(cat => !orderToUse.includes(cat.id));
+      
+      return [...orderedCategories, ...missingCategories];
+    }
+    return userCategories;
+  }, [isReordering, tempFieldOrder, fieldOrder, userCategories]);
+
   if (loading) {
     return <Container className="mt-4"><p>Loading...</p></Container>;
   }
@@ -538,12 +570,13 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
         />
       </div>
 
-      {(isReordering ? tempFieldOrder : fieldOrder).map((categoryId, index) => {
-        const category = userCategories.find(cat => cat.id === categoryId);
-        if (!category) return null;
-        const monthlyTotal = monthlyTotals[categoryId] || 0;
+      {console.log('Rendering categories. Count:', categoriesToRender.length)}
+
+      {categoriesToRender.map((category, index) => {
+        console.log('Rendering category:', category);
+        const monthlyTotal = monthlyTotals[category.id] || 0;
         return (
-          <Row key={categoryId} className="mb-3">
+          <Row key={`${category.id}-${renderKey}`} className="mb-3">
             <Col xs={12}>
               <InputGroup>
                 {isReordering && (
@@ -558,7 +591,7 @@ const HomeInput = ({ userCategories, userPaymentMethods }) => {
                     <Button
                       variant="outline-secondary"
                       onClick={() => moveField(index, 1)}
-                      disabled={index === tempFieldOrder.length - 1}
+                      disabled={index === categoriesToRender.length - 1}
                     >
                       <FaArrowDown />
                     </Button>

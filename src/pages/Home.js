@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Button, Form } from 'react-bootstrap';
+import { Container, Row, Col, Button, Form, Alert } from 'react-bootstrap';
 import { auth, db } from '../services/firebase';
 import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import HomeInput from '../components/HomeInput';
@@ -14,18 +14,30 @@ const Home = ({ user }) => {
   const [amount, setAmount] = useState('');
   const [recentPaymentMethods, setRecentPaymentMethods] = useState([]);
   const [userPaymentMethods, setUserPaymentMethods] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          setUserCategories(userData.categories || []);
-          setRecentPaymentMethods(userData.recentPaymentMethods || []);
-          setUserPaymentMethods(userData.paymentMethods || []);
-          setQuickInputEnabled(userData.settings?.quickInputEnabled || false);
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            console.log('Fetched user data:', userData);
+            const categories = userData.categories || [];
+            console.log('Fetched user categories:', categories);
+            setUserCategories(categories);
+            setRecentPaymentMethods(userData.recentPaymentMethods || []);
+            setUserPaymentMethods(userData.paymentMethods || []);
+            setQuickInputEnabled(userData.settings?.quickInputEnabled || false);
+          } else {
+            console.log('No user data found');
+            setError('No user data found. Please set up your profile.');
+          }
+        } catch (err) {
+          console.error('Error fetching user data:', err);
+          setError('Failed to load user data. Please try again.');
         }
       }
       setLoading(false);
@@ -38,8 +50,13 @@ const Home = ({ user }) => {
     const isEnabled = event.target.checked;
     setQuickInputEnabled(isEnabled);
     if (user) {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { 'settings.quickInputEnabled': isEnabled });
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, { 'settings.quickInputEnabled': isEnabled });
+      } catch (err) {
+        console.error('Error updating quick input setting:', err);
+        setError('Failed to update quick input setting. Please try again.');
+      }
     }
   };
 
@@ -62,11 +79,16 @@ const Home = ({ user }) => {
       console.log('Transaction submitted:', transaction);
     } catch (error) {
       console.error('Error submitting transaction:', error);
+      setError('Failed to submit transaction. Please try again.');
     }
   };
 
   if (loading) {
     return <Container className="mt-4"><h2>Loading...</h2></Container>;
+  }
+
+  if (error) {
+    return <Container className="mt-4"><Alert variant="danger">{error}</Alert></Container>;
   }
 
   return (
