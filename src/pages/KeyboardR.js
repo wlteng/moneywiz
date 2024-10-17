@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Container, Form, Button, InputGroup, Dropdown, Row, Col } from 'react-bootstrap';
+import Select from 'react-select';
 
 const KeyboardR = ({
   amount,
@@ -15,6 +16,7 @@ const KeyboardR = ({
   showSuccess,
   recentPaymentMethods,
   selectedCategory,
+  userCategories,
   amountInputRef,
   handleAmountChange,
   handleCurrencyChange,
@@ -26,7 +28,10 @@ const KeyboardR = ({
   setDate,
   setTime,
   currencyList,
-  userPaymentMethods
+  userPaymentMethods,
+  tags,
+  setTags,
+  allTags
 }) => {
   const paymentMethodsRef = useRef(null);
 
@@ -37,11 +42,13 @@ const KeyboardR = ({
       case 'Cash':
         return 'Cash';
       case 'Credit Card':
-        return `credit-${method.details.bank}-${method.details.last4}`;
+        return `${method.details.bank}-${method.details.last4}`;
       case 'Debit Card':
-        return `debit-${method.details.bank}-${method.details.last4}`;
+        return `${method.details.bank}-${method.details.last4}`;
       case 'E-Wallet':
         return method.details.name;
+      case 'Platform':
+        return `${method.details.name} (${method.linkedCard})`;
       default:
         return `${method.type}`;
     }
@@ -49,15 +56,12 @@ const KeyboardR = ({
 
   const getPaymentMethodBadgeColor = (type) => {
     switch (type) {
-      case 'E-Wallet':
-        return 'primary';
-      case 'Debit Card':
-        return 'success';
-      case 'Credit Card':
-        return 'danger';
-      case 'Cash':
-      default:
-        return 'secondary';
+      case 'E-Wallet': return 'primary';
+      case 'Debit Card': return 'success';
+      case 'Credit Card': return 'danger';
+      case 'Platform': return 'warning';
+      case 'Cash': return 'secondary';
+      default: return 'secondary';
     }
   };
 
@@ -71,7 +75,10 @@ const KeyboardR = ({
 
   return (
     <Container className="mt-4 pb-5" style={{ maxWidth: '100%' }}>
-      <h2 className="mb-2">{selectedCategory ? selectedCategory.name : 'Select a Category'}</h2>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2>{selectedCategory ? selectedCategory.name : 'Select a Category'}</h2>
+        <Button variant="primary" type="submit" onClick={handleSubmit}>Submit</Button>
+      </div>
 
       <div className="mb-3 payment-methods-slider" style={{
         display: 'flex',
@@ -146,6 +153,19 @@ const KeyboardR = ({
 
         <div className="mb-4">
           <Form.Group>
+            <Form.Label>Tags</Form.Label>
+            <Select
+              isMulti
+              options={allTags.map(tag => ({ value: tag, label: tag }))}
+              value={tags.map(tag => ({ value: tag, label: tag }))}
+              onChange={(selectedOptions) => setTags(selectedOptions.map(option => option.value))}
+              placeholder="Select or type to add new tags..."
+            />
+          </Form.Group>
+        </div>
+
+        <div className="mb-4">
+          <Form.Group>
             <Form.Label>Description</Form.Label>
             <Form.Control
               as="textarea"
@@ -166,8 +186,6 @@ const KeyboardR = ({
             <Form.Control type="file" onChange={(e) => setProductImage(e.target.files[0])} />
           </Form.Group>
         </div>
-
-        <Button variant="primary" type="submit">Submit</Button>
       </Form>
 
       {showSuccess && (

@@ -30,6 +30,8 @@ const Keyboard = () => {
   const [receiptProgress, setReceiptProgress] = useState(0);
   const [productImageProgress, setProductImageProgress] = useState(0);
   const [userPaymentMethods, setUserPaymentMethods] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [allTags, setAllTags] = useState([]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -51,6 +53,7 @@ const Keyboard = () => {
       setUserCategories(userData.categories || []);
       setUserPaymentMethods(userData.paymentMethods || []);
       setToCurrency(userData.mainCurrency || 'MYR');
+      setAllTags(userData.tags || []);
       localStorage.setItem('mainCurrency', userData.mainCurrency || 'MYR');
       if (categoryId) {
         const category = userData.categories.find(cat => cat.id === categoryId);
@@ -67,14 +70,14 @@ const Keyboard = () => {
 
     const methodMap = new Map();
     recentMethods.forEach(method => {
-      const key = `${method.type}-${method.details.bank || ''}-${method.details.last4 || ''}`;
+      const key = `${method.type}-${method.details.name || ''}-${method.details.last4 || ''}`;
       if (!methodMap.has(key)) {
         methodMap.set(key, method);
       }
     });
 
     allPaymentMethods.forEach(method => {
-      const key = `${method.type}-${method.details.bank || ''}-${method.details.last4 || ''}`;
+      const key = `${method.type}-${method.details.name || ''}-${method.details.last4 || ''}`;
       if (!methodMap.has(key)) {
         methodMap.set(key, method);
       }
@@ -182,6 +185,7 @@ const Keyboard = () => {
         toCurrency,
         categoryId: selectedCategory.id,
         categoryName: selectedCategory.name,
+        tags,
       };
 
       console.log('Creating transaction object:', transaction);
@@ -231,6 +235,9 @@ const Keyboard = () => {
       setTime={setTime}
       currencyList={currencyList}
       userPaymentMethods={userPaymentMethods}
+      tags={tags}
+      setTags={setTags}
+      allTags={allTags}
     />
   );
 };
