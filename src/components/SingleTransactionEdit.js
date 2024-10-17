@@ -5,7 +5,8 @@ import { db, storage } from '../services/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Container, Row, Col, Button, Form, Image, ProgressBar } from 'react-bootstrap';
 import { FaCloudUploadAlt, FaArrowLeft } from 'react-icons/fa';
-import { currencyList, getConvertedAmount } from '../data/General';
+import { currencyList } from '../data/General';
+import { convertCurrency } from '../services/conversionService';
 import imageCompression from 'browser-image-compression';
 
 const UploadBox = ({ label, onChange, preview, progress }) => (
@@ -90,13 +91,17 @@ const SingleTransactionEdit = () => {
   useEffect(() => {
     const updateConvertedAmount = async () => {
       if (editedTransaction && editedTransaction.amount && editedTransaction.fromCurrency && editedTransaction.toCurrency) {
-        const converted = await getConvertedAmount(
-          parseFloat(editedTransaction.amount),
-          editedTransaction.fromCurrency,
-          editedTransaction.toCurrency
-        );
-        setConvertedAmount(converted.toFixed(2));
-        setEditedTransaction(prev => ({ ...prev, convertedAmount: converted.toFixed(2) }));
+        try {
+          const converted = await convertCurrency(
+            parseFloat(editedTransaction.amount),
+            editedTransaction.fromCurrency,
+            editedTransaction.toCurrency
+          );
+          setConvertedAmount(converted.toFixed(2));
+          setEditedTransaction(prev => ({ ...prev, convertedAmount: converted.toFixed(2) }));
+        } catch (error) {
+          console.error("Error converting currency:", error);
+        }
       }
     };
 
@@ -382,9 +387,10 @@ const SingleTransactionEdit = () => {
           <Form.Control 
             type="number" 
             name="convertedAmount"
-            value={editedTransaction?.convertedAmount || ''}
+            value={convertedAmount}
             onChange={handleInputChange}
             placeholder="Converted Amount"
+            readOnly
           />
         </Form.Group>
 

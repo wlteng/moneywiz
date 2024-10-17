@@ -1,47 +1,10 @@
 // General.js
 
-// Define manual conversion rates from MYR to other currencies
-const conversionRates = {
-  USD: 0.21, // 1 MYR = 0.21 USD
-  EUR: 0.20, // 1 MYR = 0.20 EUR
-  GBP: 0.17, // 1 MYR = 0.17 GBP
-  SGD: 0.31, // 1 MYR = 0.31 SGD
-  AUD: 0.33, // 1 MYR = 0.33 AUD
-  RMB: 1.52, // 1 MYR = 1.52 RMB (Chinese Yuan)
-  THB: 7.57, // 1 MYR = 7.57 THB (Thai Baht)
-  IDR: 3290.00, // 1 MYR = 3290.00 IDR (Indonesian Rupiah)
-  PHP: 11.94, // 1 MYR = 11.94 PHP (Philippine Peso)
-  VND: 5150.00, // 1 MYR = 5150.00 VND (Vietnamese Dong)
-  BND: 0.31, // 1 MYR = 0.31 BND (Brunei Dollar)
-  KHR: 988.00, // 1 MYR = 988.00 KHR (Cambodian Riel)
-  HKD: 1.65, // 1 MYR = 1.65 HKD (Hong Kong Dollar)
-  MOP: 1.70, // 1 MYR = 1.70 MOP (Macanese Pataca)
-};
+// This function is now a placeholder and should not be used directly.
+// It's kept here for reference on how the conversion was previously done.
 export const getConvertedAmount = (amount, fromCurrency, toCurrency) => {
-  try {
-    console.log(`Converting ${amount} ${fromCurrency} to ${toCurrency}`);
-
-    if (fromCurrency === 'MYR') {
-      const rate = conversionRates[toCurrency];
-      if (!rate) throw new Error(`Conversion rate for ${toCurrency} not found.`);
-      const convertedAmount = amount * rate;
-      console.log(`Conversion Rate: ${rate}`);
-      console.log(`Converted Amount: ${convertedAmount}`);
-      return convertedAmount;
-    } else if (toCurrency === 'MYR') {
-      const rate = conversionRates[fromCurrency];
-      if (!rate) throw new Error(`Conversion rate for ${fromCurrency} not found.`);
-      const convertedAmount = amount / rate;
-      console.log(`Conversion Rate: ${rate}`);
-      console.log(`Converted Amount: ${convertedAmount}`);
-      return convertedAmount;
-    } else {
-      throw new Error('Conversion must involve MYR.');
-    }
-  } catch (error) {
-    console.error('Error in manual conversion:', error);
-    return amount; // Fallback to the original amount if conversion fails
-  }
+  console.warn('getConvertedAmount in General.js is deprecated. Use convertCurrency from conversionService.js instead.');
+  return amount; // Returns the original amount without conversion
 };
 
 // Define a list of currencies for dropdowns or other uses
@@ -52,7 +15,7 @@ export const currencyList = [
   { code: 'GBP', name: 'British Pound', country: 'United Kingdom', decimals: 2 },
   { code: 'SGD', name: 'Singapore Dollar', country: 'Singapore', decimals: 2 },
   { code: 'AUD', name: 'Australian Dollar', country: 'Australia', decimals: 2 },
-  { code: 'RMB', name: 'Chinese Yuan', country: 'China', decimals: 2 },
+  { code: 'CNY', name: 'Chinese Yuan', country: 'China', decimals: 2 },
   { code: 'THB', name: 'Thai Baht', country: 'Thailand', decimals: 1 },
   { code: 'IDR', name: 'Indonesian Rupiah', country: 'Indonesia', decimals: 0 },
   { code: 'PHP', name: 'Philippine Peso', country: 'Philippines', decimals: 1 },
@@ -67,31 +30,31 @@ export const getCurrencyDecimals = (currencyCode) => {
   const currency = currencyList.find(c => c.code === currencyCode);
   return currency ? currency.decimals : 2; // Default to 2 decimal places if not found
 };
-// Define a list of categories for your application
+
+// The rest of the constants and functions remain unchanged
 export const defaultCategory = [
-  { id: 'food', name: 'Food', color: '#FF8C00' },                  // Dark Orange
-  { id: 'leisure', name: 'Leisure', color: '#FF6347' },           // Tomato Red
-  { id: 'accommodation', name: 'Accommodation', color: '#4682B4' },  // Steel Blue
-  { id: 'utilities', name: 'Utilities', color: '#32CD32' },     // Lime Green
-  { id: 'transport', name: 'Transport', color: '#FFD700' },     // Gold
-  { id: 'grocery', name: 'Grocery', color: '#FFA07A' },         // Light Salmon
-  { id: 'sport', name: 'Sport', color: '#20B2AA' },             // Light Sea Green
-  { id: 'medical', name: 'Medical', color: '#FF4500' },         // Orange Red
-  { id: 'mistake', name: 'Mistake', color: '#DC143C' },         // Crimson
-  { id: 'household', name: 'Household', color: '#8A2BE2' },     // Blue Violet
-  { id: 'social', name: 'Social', color: '#FF69B4' },           // Hot Pink
-  { id: 'donation', name: 'Donation', color: '#B22222' },       // Fire Brick
-  { id: 'hiring', name: 'Hiring', color: '#2E8B57' }   ,         // Sea Green
-   { id: 'laundry', name: 'Laundry', color: '#87CEEB' },         // Sky Blue
-  { id: 'phone_bills', name: 'Phone Bills', color: '#9370DB' }, // Medium Purple
-  { id: 'gamble', name: 'Gamble', color: '#FF4500' },           // Orange Red
-  { id: 'parents', name: 'Parents', color: '#8B4513' },         // Saddle Brown
-  { id: 'kids', name: 'Kids', color: '#FFDAB9' },               // Peach Puff
-  { id: 'self_learning', name: 'Self-Learning', color: '#48D1CC' }, // Medium Turquoise
-  { id: 'love_partners', name: 'Love Partners', color: '#FFB6C1' }  // Light Pink
+  { id: 'food', name: 'Food', color: '#FF8C00' },
+  { id: 'leisure', name: 'Leisure', color: '#FF6347' },
+  { id: 'accommodation', name: 'Accommodation', color: '#4682B4' },
+  { id: 'utilities', name: 'Utilities', color: '#32CD32' },
+  { id: 'transport', name: 'Transport', color: '#FFD700' },
+  { id: 'grocery', name: 'Grocery', color: '#FFA07A' },
+  { id: 'sport', name: 'Sport', color: '#20B2AA' },
+  { id: 'medical', name: 'Medical', color: '#FF4500' },
+  { id: 'mistake', name: 'Mistake', color: '#DC143C' },
+  { id: 'household', name: 'Household', color: '#8A2BE2' },
+  { id: 'social', name: 'Social', color: '#FF69B4' },
+  { id: 'donation', name: 'Donation', color: '#B22222' },
+  { id: 'hiring', name: 'Hiring', color: '#2E8B57' },
+  { id: 'laundry', name: 'Laundry', color: '#87CEEB' },
+  { id: 'phone_bills', name: 'Phone Bills', color: '#9370DB' },
+  { id: 'gamble', name: 'Gamble', color: '#FF4500' },
+  { id: 'parents', name: 'Parents', color: '#8B4513' },
+  { id: 'kids', name: 'Kids', color: '#FFDAB9' },
+  { id: 'self_learning', name: 'Self-Learning', color: '#48D1CC' },
+  { id: 'love_partners', name: 'Love Partners', color: '#FFB6C1' }
 ];
 
-// Simplified payment types
 export const paymentTypes = [
   'Cash',
   'Credit Card',
@@ -99,25 +62,19 @@ export const paymentTypes = [
   'E-Wallet',
 ];
 
-// Define a list of wallets
 export const wallets = [
   { country: 'Malaysia', name: 'TouchnGo' },
   { country: 'Singapore', name: 'PayLah' },
-  // Add more wallets here
 ];
 
-// Define a list of credit cards
 export const creditCards = [
   { bank: 'Public Bank', type: 'Visa', last4: '3412', name: 'Platinum' },
   { bank: 'HSBC', type: 'MasterCard', last4: '1234', name: 'Gold' },
-  // Add more credit cards here
 ];
 
-// Define a list of debit cards
 export const debitCards = [
   { bank: 'RHB', type: 'Visa', last4: '5678' },
   { bank: 'Maybank', type: 'MasterCard', last4: '9101' },
-  // Add more debit cards here
 ];
 
 export const investmentPlatforms = [
@@ -147,7 +104,6 @@ export const unitOptions = [
   'ounce',
   'kilogram',
   'unit',
-  // Add more units as needed
 ];
 
 export const banks = [
@@ -161,7 +117,6 @@ export const banks = [
   'Standard Chartered',
   'UOB',
   'OCBC Bank',
-  // Add more banks as needed
 ];
 
 export const shopCategories = [

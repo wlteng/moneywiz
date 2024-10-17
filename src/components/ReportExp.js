@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Alert, Form } from 'react-bootstrap';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Container, Row, Col, Alert, Form, Spinner } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
@@ -36,17 +36,9 @@ const ReportExp = () => {
           const fetchedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setTransactions(fetchedTransactions);
           
-          // Set current month as default
           const currentDate = new Date();
           const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
           setSelectedMonth(currentMonth);
-          
-          const filtered = fetchedTransactions.filter(transaction => {
-            const transactionDate = new Date(transaction.date);
-            return transactionDate.getFullYear() === currentDate.getFullYear() &&
-                   transactionDate.getMonth() === currentDate.getMonth();
-          });
-          setFilteredTransactions(filtered);
         }
       } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -60,26 +52,30 @@ const ReportExp = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedMonth) {
+    if (selectedMonth && transactions.length > 0) {
+      const [year, month] = selectedMonth.split('-').map(Number);
       const filtered = transactions.filter(transaction => {
         const transactionDate = new Date(transaction.date);
-        return transactionDate.getFullYear() === parseInt(selectedMonth.split('-')[0]) &&
-               transactionDate.getMonth() === parseInt(selectedMonth.split('-')[1]) - 1;
+        return transactionDate.getFullYear() === year &&
+               transactionDate.getMonth() === month - 1;
       });
       setFilteredTransactions(filtered);
-      const daysInMonth = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]), 0).getDate();
-      setDaysInPeriod(daysInMonth);
+
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month - 1;
+      const lastDayOfMonth = isCurrentMonth ? today.getDate() : new Date(year, month, 0).getDate();
+      setDaysInPeriod(lastDayOfMonth);
     } else {
       setFilteredTransactions(transactions);
       const earliestDate = new Date(Math.min(...transactions.map(t => new Date(t.date))));
-      const latestDate = new Date(Math.max(...transactions.map(t => new Date(t.date))));
+      const latestDate = new Date();
       const daysDiff = Math.ceil((latestDate - earliestDate) / (1000 * 60 * 60 * 24)) + 1;
       setDaysInPeriod(daysDiff);
     }
   }, [selectedMonth, transactions]);
 
-  useEffect(() => {
-    const calculateTotals = async () => {
+  const calculateTotals = useMemo(() => {
+    return async () => {
       const currencyTotals = {};
       const categoryTotals = {};
       const paymentMethodTotals = {};
@@ -89,34 +85,14 @@ const ReportExp = () => {
       for (const transaction of filteredTransactions) {
         const convertedAmount = await convertCurrency(parseFloat(transaction.amount), transaction.fromCurrency, mainCurrency);
         
-        // Total by currency
-        if (!currencyTotals[transaction.fromCurrency]) {
-          currencyTotals[transaction.fromCurrency] = 0;
-        }
-        currencyTotals[transaction.fromCurrency] += parseFloat(transaction.amount);
-
-        // Total by category
-        if (!categoryTotals[transaction.categoryName]) {
-          categoryTotals[transaction.categoryName] = 0;
-        }
-        categoryTotals[transaction.categoryName] += convertedAmount;
-
-        // Total by payment method
+        currencyTotals[transaction.fromCurrency] = (currencyTotals[transaction.fromCurrency] || 0) + parseFloat(transaction.amount);
+        categoryTotals[transaction.categoryName] = (categoryTotals[transaction.categoryName] || 0) + convertedAmount;
         const methodType = transaction.paymentMethod.type;
-        if (!paymentMethodTotals[methodType]) {
-          paymentMethodTotals[methodType] = 0;
-        }
-        paymentMethodTotals[methodType] += convertedAmount;
-
-        // Total payment
+        paymentMethodTotals[methodType] = (paymentMethodTotals[methodType] || 0) + convertedAmount;
         total += convertedAmount;
 
-        // Daily totals for chart
         const date = new Date(transaction.date).toISOString().split('T')[0];
-        if (!dailyTotals[date]) {
-          dailyTotals[date] = 0;
-        }
-        dailyTotals[date] += convertedAmount;
+        dailyTotals[date] = (dailyTotals[date] || 0) + convertedAmount;
       }
 
       setTotalByCurrency(Object.entries(currencyTotals).map(([currency, amount]) => ({ 
@@ -141,22 +117,30 @@ const ReportExp = () => {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([date, amount]) => ({ date, amount })));
     };
-
-    if (daysInPeriod) {
-      calculateTotals();
-    }
   }, [filteredTransactions, mainCurrency, daysInPeriod]);
 
-  const getMonthOptions = () => {
+  useEffect(() => {
+    if (daysInPeriod && filteredTransactions.length > 0) {
+      calculateTotals();
+    }
+  }, [calculateTotals, daysInPeriod, filteredTransactions.length]);
+
+  const getMonthOptions = useMemo(() => {
     const months = [...new Set(transactions.map(transaction => {
       const date = new Date(transaction.date);
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     }))];
     return months.sort((a, b) => b.localeCompare(a));
-  };
+  }, [transactions]);
 
   if (loading) {
-    return <Container className="mt-4"><h2>Loading...</h2></Container>;
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+      </Container>
+    );
   }
 
   if (error) {
@@ -175,7 +159,7 @@ const ReportExp = () => {
               onChange={(e) => setSelectedMonth(e.target.value)}
             >
               <option value="">All Months</option>
-              {getMonthOptions().map(month => (
+              {getMonthOptions.map(month => (
                 <option key={month} value={month}>
                   {new Date(month).toLocaleString('default', { month: 'long', year: 'numeric' })}
                 </option>
@@ -187,7 +171,7 @@ const ReportExp = () => {
       <Row>
         <Col>
           <Alert variant="info" className="mb-2">
-            <strong>Total Payment:</strong> {totalPayment?.toFixed(2)} {mainCurrency} ({dailyAverage?.toFixed(2)})
+            <strong>Total Payment:</strong> {mainCurrency} {totalPayment?.toFixed(2)} ({dailyAverage?.toFixed(2)})
           </Alert>
         </Col>
       </Row>
@@ -204,7 +188,7 @@ const ReportExp = () => {
           <h3>Total by Category</h3>
           {totalByCategory.map(({ category, amount, dailyAverage }, index) => (
             <Alert key={category} variant={['success', 'info', 'warning', 'danger', 'primary'][index % 5]} className="mb-2">
-              <strong>{category}:</strong> {amount.toFixed(2)} {mainCurrency} ({dailyAverage.toFixed(2)})
+              <strong>{category}:</strong> {mainCurrency} {amount.toFixed(2)} ({dailyAverage.toFixed(2)})
             </Alert>
           ))}
         </Col>
@@ -212,7 +196,7 @@ const ReportExp = () => {
           <h3>Total by Payment Method</h3>
           {totalByPaymentMethod.map(({ method, amount, dailyAverage }, index) => (
             <Alert key={method} variant={['info', 'success', 'warning', 'danger', 'primary'][index % 5]} className="mb-2">
-              <strong>{method}:</strong> {amount.toFixed(2)} {mainCurrency} ({dailyAverage.toFixed(2)})
+              <strong>{method}:</strong> {mainCurrency} {amount.toFixed(2)} ({dailyAverage.toFixed(2)})
             </Alert>
           ))}
         </Col>

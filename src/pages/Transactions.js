@@ -4,7 +4,7 @@ import { db, auth } from '../services/firebase';
 import { collection, getDocs, query, orderBy, where, doc, getDoc } from 'firebase/firestore';
 import TransactionsR from '../components/TransactionsR';
 import TransactionMobile from '../components/TransactionMobile';
-import { getConvertedAmount } from '../data/General'; // Ensure this function is updated to handle all currency conversions
+import { convertCurrency } from '../services/conversionService';
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -16,11 +16,13 @@ const Transactions = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [mainCurrency, setMainCurrency] = useState(localStorage.getItem('mainCurrency') || 'USD');
+  const [loading, setLoading] = useState(true);
 
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
   useEffect(() => {
     const fetchTransactions = async () => {
+      setLoading(true);
       const user = auth.currentUser;
       if (user) {
         const q = query(
@@ -29,16 +31,24 @@ const Transactions = () => {
           orderBy('date', 'desc')
         );
         const querySnapshot = await getDocs(q);
-        const fetchedTransactions = querySnapshot.docs.map(doc => {
+        const fetchedTransactions = await Promise.all(querySnapshot.docs.map(async (doc) => {
           const data = doc.data();
+          let convertedAmount;
+          try {
+            convertedAmount = await convertCurrency(parseFloat(data.amount), data.fromCurrency, mainCurrency);
+          } catch (error) {
+            console.error('Error converting currency:', error);
+            convertedAmount = parseFloat(data.amount); // Fallback to original amount
+          }
           return {
             id: doc.id,
             ...data,
-            convertedAmount: getConvertedAmount(parseFloat(data.amount), data.fromCurrency, mainCurrency)
+            convertedAmount
           };
-        });
+        }));
         setTransactions(fetchedTransactions);
       }
+      setLoading(false);
     };
 
     const fetchUserCategories = async () => {
@@ -130,7 +140,8 @@ const Transactions = () => {
     selectedPayment,
     resetFilters,
     mainCurrency,
-    getMonthlyTotal
+    getMonthlyTotal,
+    loading
   };
 
   return isMobile ? <TransactionMobile {...commonProps} /> : <TransactionsR {...commonProps} />;
